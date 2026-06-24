@@ -1,0 +1,32 @@
+# =========================
+# Configuração global
+# =========================
+* text=auto eol=lf
+
+# =========================
+# Tipos de arquivo (diff)
+# =========================
+*.php      diff=php
+*.blade.php diff=html
+*.css      diff=css
+*.scss     diff=css
+*.js       diff=javascript
+*.ts       diff=javascript
+*.tsx      diff=javascript
+*.html     diff=html
+*.md       diff=markdown
+*.json     diff=json
+*.yml      diff=yaml
+*.yaml     diff=yaml
+
+# =========================
+# Binários (não tratar como texto)
+# =========================
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.exe binary
