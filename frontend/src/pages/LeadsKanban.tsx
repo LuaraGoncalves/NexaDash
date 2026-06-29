@@ -6,7 +6,7 @@ import type { Dispatch, SetStateAction } from 'react';
 export type Lead = {
   id: number;
   nome: string;
-  status: "indecisa" | "negociacao" | "concluida" | "espera";
+  status: "novo" | "negociacao" | "indeciso" | "aguardando" | "concluido";
 };
 
 type LeadsKanbanProps = {
@@ -17,10 +17,10 @@ type LeadsKanbanProps = {
 
 export default function LeadsKanban({ leads, setLeads, onLeadClick }: LeadsKanbanProps) {
   const [internalLeads, setInternalLeads] = useState<Lead[]>([
-    { id: 1, nome: "Maria", status: "indecisa" },
+    { id: 1, nome: "Maria", status: "novo" },
     { id: 2, nome: "João", status: "negociacao" },
-    { id: 3, nome: "Pedro", status: "espera" },
-    { id: 4, nome: "Ana", status: "concluida" },
+    { id: 3, nome: "Pedro", status: "indeciso" },
+    { id: 4, nome: "Ana", status: "aguardando" },
   ]);
 
   const currentLeads = leads ?? internalLeads;
@@ -28,10 +28,11 @@ export default function LeadsKanban({ leads, setLeads, onLeadClick }: LeadsKanba
   const handleLeadClick = onLeadClick ?? (() => undefined);
 
   const colunas: { key: Lead["status"]; titulo: string }[] = [
-    { key: "indecisa", titulo: "Indecisa" },
-    { key: "negociacao", titulo: "Em negociação" },
-    { key: "espera", titulo: "Em espera" },
-    { key: "concluida", titulo: "Concluída" },
+    { key: "novo", titulo: "Novo" },
+    { key: "negociacao", titulo: "Negociação" },
+    { key: "indeciso", titulo: "Indeciso" },
+    { key: "aguardando", titulo: "Aguardando" },
+    { key: "concluido", titulo: "Concluído" },
   ];
 
   const onDragEnd = (result: DropResult) => {

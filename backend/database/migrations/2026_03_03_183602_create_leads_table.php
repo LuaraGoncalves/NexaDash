@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
-            $table->string('status')->default('indecisa');
+            $table->string('status')->default('novo');
             $table->timestamps();
         });
     }
