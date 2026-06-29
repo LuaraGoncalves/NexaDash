@@ -7,10 +7,10 @@ function Leads() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   const [leads, setLeads] = useState<Lead[]>([
-    { id: 1, nome: "Maria", status: "indecisa" },
+    { id: 1, nome: "Maria", status: "novo" },
     { id: 2, nome: "João", status: "negociacao" },
-    { id: 3, nome: "Pedro", status: "espera" },
-    { id: 4, nome: "Ana", status: "concluida" },
+    { id: 3, nome: "Pedro", status: "indeciso" },
+    { id: 4, nome: "Ana", status: "aguardando" },
   ]);
 
   const handleLeadClick = (lead: Lead) => {
@@ -20,10 +20,11 @@ function Leads() {
 
   const getStatusColor = (status: Lead['status']) => {
     switch(status) {
-      case 'indecisa': return 'bg-yellow-500';
+      case 'novo': return 'bg-sky-500';
       case 'negociacao': return 'bg-blue-500';
-      case 'espera': return 'bg-orange-500';
-      case 'concluida': return 'bg-green-500';
+      case 'indeciso': return 'bg-yellow-500';
+      case 'aguardando': return 'bg-orange-500';
+      case 'concluido': return 'bg-green-500';
       default: return 'bg-gray-500';
     }
   };
