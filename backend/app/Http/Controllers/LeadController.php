@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Lead;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -29,6 +30,14 @@ class LeadController extends Controller
             'status' => $validated['status'] ?? Lead::STATUS_NOVO,
         ]);
 
+        AuditLog::record(
+            $request->user()?->id,
+            $request->user()?->name ?? 'Sistema',
+            'leads',
+            "Lead criado: {$lead->name}",
+            ['lead_id' => $lead->id]
+        );
+
         return $lead;
     }
 
@@ -43,6 +52,8 @@ class LeadController extends Controller
 
         $lead = Lead::findOrFail($id);
 
+        $statusAnterior = $lead->status;
+
         $lead->update([
             'name' => $validated['name'] ?? $lead->name,
             'phone' => array_key_exists('phone', $validated) ? $validated['phone'] : $lead->phone,
@@ -50,6 +61,38 @@ class LeadController extends Controller
             'status' => $validated['status'] ?? $lead->status,
         ]);
 
+        $acao = $statusAnterior !== $lead->status
+            ? "Lead atualizado: {$lead->name} ({$statusAnterior} -> {$lead->status})"
+            : "Lead atualizado: {$lead->name}";
+
+        AuditLog::record(
+            $request->user()?->id,
+            $request->user()?->name ?? 'Sistema',
+            'leads',
+            $acao,
+            ['lead_id' => $lead->id, 'status' => $lead->status]
+        );
+
         return $lead;
+    }
+
+    public function destroy(Request $request, string $id)
+    {
+        $lead = Lead::findOrFail($id);
+        $leadName = $lead->name;
+        $leadId = $lead->id;
+        $lead->delete();
+
+        AuditLog::record(
+            $request->user()?->id,
+            $request->user()?->name ?? 'Sistema',
+            'leads',
+            "Lead excluído: {$leadName}",
+            ['lead_id' => $leadId]
+        );
+
+        return response()->json([
+            'message' => 'Lead excluído com sucesso.',
+        ]);
     }
 }

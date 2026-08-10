@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Lead extends Model
 {
@@ -26,4 +27,9 @@ class Lead extends Model
         'email',
         'status',
     ];
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(LeadMessage::class)->orderBy('sent_at');
+    }
 }

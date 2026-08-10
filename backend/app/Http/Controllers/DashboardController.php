@@ -2,32 +2,111 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\AuditLog;
+use App\Models\FinancialTransaction;
+use App\Models\Lead;
+use App\Models\Product;
+use App\Models\Sale;
+use App\Models\User;
 
 class DashboardController extends Controller
 {
     public function index()
     {
+        $monthlyRevenue = collect(range(3, 0))
+            ->map(function (int $monthsAgo) {
+                $date = now()->subMonths($monthsAgo);
+
+                return [
+                    'label' => strtoupper($date->translatedFormat('M')),
+                    'value' => (float) Sale::query()
+                        ->where('status', Sale::STATUS_CONCLUIDA)
+                        ->whereYear('created_at', $date->year)
+                        ->whereMonth('created_at', $date->month)
+                        ->sum('total'),
+                ];
+            })
+            ->values();
+
+        $totalLeads = Lead::count();
+        $leadsConcluidos = Lead::where('status', Lead::STATUS_CONCLUIDO)->count();
+        $conversionRate = $totalLeads > 0 ? round(($leadsConcluidos / $totalLeads) * 100, 2) : 0;
+
+        $receitasPagas = (float) FinancialTransaction::query()
+            ->where('tipo', FinancialTransaction::TIPO_RECEITA)
+            ->where('status', FinancialTransaction::STATUS_PAGO)
+            ->sum('valor');
+
+        $despesasPagas = (float) FinancialTransaction::query()
+            ->where('tipo', FinancialTransaction::TIPO_DESPESA)
+            ->where('status', FinancialTransaction::STATUS_PAGO)
+            ->sum('valor');
+
+        $teamPerformance = AuditLog::query()
+            ->selectRaw('usuario_nome, COUNT(*) as total')
+            ->groupBy('usuario_nome')
+            ->orderByDesc('total')
+            ->limit(4)
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'name' => $row->usuario_nome,
+                    'val' => min(100, (int) $row->total * 20),
+                ];
+            })
+            ->values();
+
+        if ($teamPerformance->isEmpty()) {
+            $teamPerformance = User::query()
+                ->where('status', 'ativo')
+                ->limit(4)
+                ->get()
+                ->map(fn (User $user) => [
+                    'name' => $user->name,
+                    'val' => 0,
+                ])
+                ->values();
+        }
+
         return response()->json([
             'sales' => [
-                'total_revenue' => 24500,
-                'performance' => [12, 19, 3, 5, 2, 3]
+                'total_revenue' => (float) Sale::query()
+                    ->where('status', Sale::STATUS_CONCLUIDA)
+                    ->sum('total'),
+                'completed_count' => Sale::where('status', Sale::STATUS_CONCLUIDA)->count(),
+                'monthly_overview' => $monthlyRevenue,
             ],
             'products' => [
-                'total' => 120,
-                'top_selling' => 'Produto A'
+                'total' => Product::count(),
+                'low_stock' => Product::query()
+                    ->where('status', Product::STATUS_ATIVO)
+                    ->whereColumn('quantidade', '<=', 'estoque_minimo')
+                    ->count(),
             ],
             'leads' => [
-                'new_leads' => 124,
-                'conversion_rate' => 15
+                'new_leads' => Lead::where('status', Lead::STATUS_NOVO)->count(),
+                'conversion_rate' => $conversionRate,
+                'total' => $totalLeads,
             ],
             'financial' => [
-                'balance' => 54000
+                'revenue' => $receitasPagas,
+                'expenses' => $despesasPagas,
+                'balance' => $receitasPagas - $despesasPagas,
             ],
-            'recent_activities' => [
-                ['id' => 1, 'text' => 'Novo produto adicionado', 'time' => 'Há 2 horas', 'type' => 'Produto'],
-                ['id' => 2, 'text' => 'Venda realizada no valor de R$500', 'time' => 'Há 4 horas', 'type' => 'Vendas']
-            ]
+            'users' => [
+                'active' => User::where('status', 'ativo')->count(),
+            ],
+            'team_performance' => $teamPerformance,
+            'recent_activities' => AuditLog::query()
+                ->latest('data_hora')
+                ->limit(5)
+                ->get()
+                ->map(fn (AuditLog $log) => [
+                    'id' => $log->id,
+                    'text' => $log->acao,
+                    'time' => $log->data_hora?->format('Y-m-d H:i'),
+                    'type' => $log->modulo,
+                ]),
         ]);
     }
 }
