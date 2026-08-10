@@ -1,4 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import ConfirmActionModal from '../components/ConfirmActionModal';
+import ContextHelp from '../components/ContextHelp';
+import { useToast } from '../context/ToastContext';
+import {
+  deleteFinancialCategory,
+  deleteFinancialTransaction,
+  listFinancialCategories,
+  listFinancialTransactions,
+  type FinancialCategoryRecord,
+  type FinancialTransactionRecord,
+} from '../services/financeApi';
 
 // =======================
 // TIPAGENS / TYPES
@@ -7,102 +18,27 @@ type TipoTransacao = 'receita' | 'despesa';
 type StatusTransacao = 'Pago' | 'Pendente' | 'Cancelado';
 type FormaPagamento = 'PIX' | 'Dinheiro' | 'Cartão de Crédito' | 'Cartão de Débito' | 'Boleto' | 'Transferência';
 
-type CategoriaFinanceira = {
-  id: number;
-  nome: string;
-  tipo: 'receita' | 'despesa' | 'ambos';
-  cor: string;
+type CategoriaFinanceira = FinancialCategoryRecord;
+type Transacao = FinancialTransactionRecord & {
+  forma_pagamento: FormaPagamento;
+  tipo: TipoTransacao;
+  status: StatusTransacao;
+  data_pagamento?: string;
 };
 
-type Transacao = {
-  id: number;
-  tipo: TipoTransacao;
-  descricao: string;
-  valor: number;
-  data_vencimento: string;
-  data_pagamento?: string;
-  id_categoria: number;
-  forma_pagamento: FormaPagamento;
-  status: StatusTransacao;
-  protocolo_venda?: string; // Vínculo com módulo de vendas
-  observacoes?: string;
-};
+type PendingFinanceAction =
+  | { kind: 'transaction'; id: number; label: string }
+  | { kind: 'category'; id: number; label: string };
 
 export default function Financeiro() {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'extrato' | 'categorias'>('extrato');
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isDeletingAction, setIsDeletingAction] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingFinanceAction | null>(null);
 
-  // =======================
-  // MOCKS / DADOS FALSOS
-  // =======================
-  const [categorias] = useState<CategoriaFinanceira[]>([
-    { id: 1, nome: "Vendas (PDV)", tipo: "receita", cor: "bg-green-500" },
-    { id: 2, nome: "Serviços/Consultoria", tipo: "receita", cor: "bg-blue-500" },
-    { id: 3, nome: "Fornecedores", tipo: "despesa", cor: "bg-orange-500" },
-    { id: 4, nome: "Folha de Pagamento", tipo: "despesa", cor: "bg-red-500" },
-    { id: 5, nome: "Aluguel/Infraestrutura", tipo: "despesa", cor: "bg-yellow-500" },
-    { id: 6, nome: "Impostos", tipo: "despesa", cor: "bg-purple-500" },
-    { id: 7, nome: "Marketing/Ads", tipo: "despesa", cor: "bg-pink-500" }
-  ]);
-
-  const [transacoes, setTransacoes] = useState<Transacao[]>([
-    {
-      id: 1001,
-      tipo: 'receita',
-      descricao: 'Venda de Smartphone + Acessórios',
-      valor: 2545.00,
-      data_vencimento: '2026-03-01',
-      data_pagamento: '2026-03-01',
-      id_categoria: 1,
-      forma_pagamento: 'PIX',
-      status: 'Pago',
-      protocolo_venda: 'VND-20260301-001'
-    },
-    {
-      id: 1002,
-      tipo: 'despesa',
-      descricao: 'Pagamento de Aluguel (Escritório)',
-      valor: 1500.00,
-      data_vencimento: '2026-03-05',
-      id_categoria: 5,
-      forma_pagamento: 'Boleto',
-      status: 'Pendente',
-      observacoes: 'Boleto no app do banco Itaú'
-    },
-    {
-      id: 1003,
-      tipo: 'receita',
-      descricao: 'Aplicação de Películas x2',
-      valor: 60.00,
-      data_vencimento: '2026-03-02',
-      data_pagamento: '2026-03-02',
-      id_categoria: 1,
-      forma_pagamento: 'Cartão de Débito',
-      status: 'Pago',
-      protocolo_venda: 'VND-20260302-002'
-    },
-    {
-      id: 1004,
-      tipo: 'despesa',
-      descricao: 'Compra Lote Capas Tech Distribuidora',
-      valor: 850.00,
-      data_vencimento: '2026-03-02',
-      data_pagamento: '2026-03-02',
-      id_categoria: 3,
-      forma_pagamento: 'Transferência',
-      status: 'Pago'
-    },
-    {
-      id: 1005,
-      tipo: 'receita',
-      descricao: 'Venda Faturada Empresa XPTO (Cabos)',
-      valor: 1200.00,
-      data_vencimento: '2026-03-10',
-      id_categoria: 1,
-      forma_pagamento: 'Boleto',
-      status: 'Pendente',
-      protocolo_venda: 'VND-20260303-003'
-    }
-  ]);
+  const [categorias, setCategorias] = useState<CategoriaFinanceira[]>([]);
+  const [transacoes, setTransacoes] = useState<Transacao[]>([]);
 
   // =======================
   // ESTADOS E FILTROS DO EXTRATO
@@ -115,6 +51,39 @@ export default function Financeiro() {
   const [tipoNovaTransacao, setTipoNovaTransacao] = useState<TipoTransacao>('receita');
   
   const [transacaoDetalheModal, setTransacaoDetalheModal] = useState<Transacao | null>(null);
+
+  const carregarDados = async () => {
+    try {
+      const [categoriesResponse, transactionsResponse] = await Promise.all([
+        listFinancialCategories(),
+        listFinancialTransactions(),
+      ]);
+
+      setCategorias(categoriesResponse);
+      setTransacoes(
+        transactionsResponse.map((transaction) => ({
+          ...transaction,
+          tipo: transaction.tipo as TipoTransacao,
+          status: transaction.status as StatusTransacao,
+          forma_pagamento: transaction.forma_pagamento as FormaPagamento,
+          data_pagamento: transaction.data_pagamento ?? undefined,
+        })),
+      );
+    } catch (error) {
+      console.error('Erro ao carregar dados financeiros:', error);
+      showToast({
+        tone: 'error',
+        title: 'Nao consegui carregar o financeiro',
+        description: 'Os dados financeiros nao vieram da API agora.',
+      });
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  useEffect(() => {
+    void carregarDados();
+  }, [showToast]);
 
   // Lógica de Filtragem
   const transacoesFiltradas = transacoes.filter(t => {
@@ -151,6 +120,61 @@ export default function Financeiro() {
       t.id === idTransacao ? { ...t, status: 'Pago', data_pagamento: new Date().toISOString().split('T')[0] } : t
     ));
     setTransacaoDetalheModal(prev => prev ? { ...prev, status: 'Pago', data_pagamento: new Date().toISOString().split('T')[0] } : null);
+    showToast({
+      tone: 'info',
+      title: 'Baixa visual aplicada',
+      description: 'Essa baixa mudou na tela, mas ainda nao foi ligada na API.',
+    });
+  };
+
+  const handleConfirmAction = async () => {
+    if (!pendingAction) {
+      return;
+    }
+
+    setIsDeletingAction(true);
+
+    try {
+      if (pendingAction.kind === 'transaction') {
+        const response = await deleteFinancialTransaction(pendingAction.id);
+        const updatedTransaction = {
+          ...response.transaction,
+          tipo: response.transaction.tipo as TipoTransacao,
+          status: response.transaction.status as StatusTransacao,
+          forma_pagamento: response.transaction.forma_pagamento as FormaPagamento,
+          data_pagamento: response.transaction.data_pagamento ?? undefined,
+        };
+
+        setTransacoes((prev) => prev.map((transaction) => (transaction.id === updatedTransaction.id ? updatedTransaction : transaction)));
+        setTransacaoDetalheModal((prev) => (prev?.id === updatedTransaction.id ? updatedTransaction : prev));
+        showToast({
+          tone: 'success',
+          title: 'Lancamento cancelado',
+          description: `${pendingAction.label} continuou no historico como cancelado.`,
+        });
+      }
+
+      if (pendingAction.kind === 'category') {
+        await deleteFinancialCategory(pendingAction.id);
+        setCategorias((prev) => prev.filter((category) => category.id !== pendingAction.id));
+        showToast({
+          tone: 'success',
+          title: 'Categoria excluida',
+          description: `${pendingAction.label} foi removida do cadastro financeiro.`,
+        });
+      }
+
+      setPendingAction(null);
+    } catch (error) {
+      console.error('Erro ao executar ação financeira:', error);
+      showToast({
+        tone: 'error',
+        title: 'Nao consegui concluir a acao',
+        description: 'A API financeira nao confirmou essa operacao agora.',
+      });
+    } finally {
+      setIsDeletingAction(false);
+    }
   };
 
   return (
@@ -162,7 +186,11 @@ export default function Financeiro() {
           <h2 className="text-2xl font-bold text-white mb-1">Gestão Financeira</h2>
           <p className="text-gray-400 text-sm">Controle de fluxo de caixa, receitas, despesas e relatórios.</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-2">
+           <ContextHelp title="Ajuda do financeiro">
+             <p>Excluir lancamento cancela e preserva historico.</p>
+             <p>Este modulo ainda tem partes visuais sem ligacao completa com a API, entao merece uma segunda rodada depois.</p>
+           </ContextHelp>
            <button 
              onClick={() => setActiveTab('extrato')}
              className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors flex items-center ${activeTab === 'extrato' ? 'bg-[#23272d] text-white border-t border-l border-r border-[#00e6e6]' : 'text-gray-400 hover:text-white'}`}
@@ -182,13 +210,11 @@ export default function Financeiro() {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden relative">
-
         {/* ========================================================= */}
         {/* ABA 1: FLUXO DE CAIXA E DASHBOARD */}
         {/* ========================================================= */}
         {activeTab === 'extrato' && (
           <div className="absolute inset-0 flex flex-col gap-6 overflow-y-auto pr-2 pb-6">
-             
              {/* DASHBOARD CARDS */}
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
                 {/* Entradas */}
@@ -267,6 +293,9 @@ export default function Financeiro() {
                 </div>
 
                 <div className="flex-1 overflow-auto p-4">
+                   {isLoadingData ? (
+                     <div className="py-10 text-center text-gray-500">Carregando lançamentos financeiros...</div>
+                   ) : (
                    <div className="space-y-3">
                      {transacoesFiltradas.length === 0 ? (
                        <div className="text-center py-10 text-gray-500">Nenhum lançamento financeiro encontrado.</div>
@@ -317,6 +346,7 @@ export default function Financeiro() {
                        );
                      })}
                    </div>
+                   )}
                 </div>
              </div>
           </div>
@@ -342,7 +372,13 @@ export default function Financeiro() {
                             <p className="text-[10px] uppercase text-gray-500 tracking-wider mt-0.5">{cat.tipo}</p>
                          </div>
                       </div>
-                      <button className="text-gray-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100">Editar</button>
+                      <button
+                        type="button"
+                        onClick={() => setPendingAction({ kind: 'category', id: cat.id, label: cat.nome })}
+                        className="text-red-400 hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        Excluir
+                      </button>
                    </div>
                 ))}
              </div>
@@ -513,7 +549,17 @@ export default function Financeiro() {
             </div>
 
             <div className="p-4 bg-[#23272d] rounded-b-2xl border-t border-gray-700 flex justify-between">
-               <button className="text-red-500 hover:text-red-400 text-sm font-bold flex items-center transition-colors">
+               <button
+                  type="button"
+                  onClick={() =>
+                    setPendingAction({
+                      kind: 'transaction',
+                      id: transacaoDetalheModal.id,
+                      label: transacaoDetalheModal.descricao,
+                    })
+                  }
+                  className="text-red-500 hover:text-red-400 text-sm font-bold flex items-center transition-colors"
+               >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 mr-1"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                   Excluir
                </button>
@@ -530,6 +576,21 @@ export default function Financeiro() {
           </div>
         </div>
       )}
+
+      <ConfirmActionModal
+        isOpen={pendingAction !== null}
+        title={pendingAction?.kind === 'transaction' ? 'Cancelar lançamento?' : 'Excluir categoria?'}
+        description={
+          pendingAction?.kind === 'transaction'
+            ? `O lançamento ${pendingAction.label} não será apagado da história. Ele vai virar Cancelado.`
+            : `A categoria ${pendingAction?.label ?? ''} será apagada de verdade do cadastro.`
+        }
+        confirmLabel={pendingAction?.kind === 'transaction' ? 'Cancelar lançamento' : 'Excluir categoria'}
+        tone={pendingAction?.kind === 'transaction' ? 'warning' : 'danger'}
+        isSubmitting={isDeletingAction}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={handleConfirmAction}
+      />
 
     </div>
   );

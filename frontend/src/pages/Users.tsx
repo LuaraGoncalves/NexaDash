@@ -1,90 +1,314 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  createManagedUser,
+  deleteManagedUser,
+  listAuditLogs,
+  listUsers,
+  updateManagedUser,
+  type AuditLogFilters,
+  type AuditLogRecord,
+  type ManagedUser,
+  type PermissionKey,
+  type UserPermissions,
+  type UserRole,
+  type UserStatus,
+} from '../services/usersApi';
+import ConfirmActionModal from '../components/ConfirmActionModal';
+import ContextHelp from '../components/ContextHelp';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
-type Permission = 'ver_leads' | 'editar_leads' | 'excluir_leads' | 'ver_financeiro' | 'criar_usuario';
-
-type User = {
-  id: number;
-  nome: string;
-  email: string;
-  status: 'ativo' | 'inativo';
-  perfil: 'Administrador' | 'Gerente de Vendas' | 'Atendente' | 'Financeiro';
-  setor: 'Vendas' | 'Financeiro' | 'Suporte' | 'Marketing' | 'Geral';
-  data_criacao: string;
-  ultimo_acesso: string;
-  foto?: string;
-  permissoes: Record<Permission, boolean>;
+type RoleOption = {
+  value: UserRole;
+  label: string;
+  defaultSetor: string;
 };
 
-type AuditLog = {
-  id: number;
-  usuario_nome: string;
-  acao: string;
-  data_hora: string;
+type UserFormState = {
+  name: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  status: UserStatus;
+  setor: string;
+  permissions: UserPermissions;
+};
+
+const roleOptions: RoleOption[] = [
+  { value: 'admin', label: 'Administrador', defaultSetor: 'Geral' },
+  { value: 'manager', label: 'Gerente de Vendas', defaultSetor: 'Vendas' },
+  { value: 'employee', label: 'Atendente', defaultSetor: 'Vendas' },
+  { value: 'finance', label: 'Financeiro', defaultSetor: 'Financeiro' },
+];
+
+const permissionLabels: Record<PermissionKey, string> = {
+  ver_leads: 'Ver Leads',
+  editar_leads: 'Editar Leads',
+  excluir_leads: 'Excluir Leads',
+  ver_financeiro: 'Ver Financeiro',
+  criar_usuario: 'Criar Usuários',
+};
+
+const defaultPermissionsByRole: Record<UserRole, UserPermissions> = {
+  admin: {
+    ver_leads: true,
+    editar_leads: true,
+    excluir_leads: true,
+    ver_financeiro: true,
+    criar_usuario: true,
+  },
+  manager: {
+    ver_leads: true,
+    editar_leads: true,
+    excluir_leads: false,
+    ver_financeiro: false,
+    criar_usuario: false,
+  },
+  employee: {
+    ver_leads: true,
+    editar_leads: false,
+    excluir_leads: false,
+    ver_financeiro: false,
+    criar_usuario: false,
+  },
+  finance: {
+    ver_leads: false,
+    editar_leads: false,
+    excluir_leads: false,
+    ver_financeiro: true,
+    criar_usuario: false,
+  },
+};
+
+const emptyFormState = (): UserFormState => ({
+  name: '',
+  email: '',
+  password: '',
+  role: 'employee',
+  status: 'ativo',
+  setor: 'Vendas',
+  permissions: { ...defaultPermissionsByRole.employee },
+});
+
+const moduleLabels: Record<string, string> = {
+  auth: 'Autenticação',
+  seguranca: 'Segurança',
+  usuarios: 'Usuários',
+  produtos: 'Produtos',
+  estoque: 'Estoque',
+  financeiro: 'Financeiro',
+  leads: 'Leads',
+  vendas: 'Vendas',
+};
+
+const moduleBadgeClasses: Record<string, string> = {
+  auth: 'bg-sky-500/10 text-sky-300 border-sky-500/30',
+  seguranca: 'bg-red-500/10 text-red-300 border-red-500/30',
+  usuarios: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30',
+  produtos: 'bg-orange-500/10 text-orange-300 border-orange-500/30',
+  estoque: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+  financeiro: 'bg-violet-500/10 text-violet-300 border-violet-500/30',
+  leads: 'bg-pink-500/10 text-pink-300 border-pink-500/30',
+  vendas: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/30',
 };
 
 function Users() {
+  const { user: authUser } = useAuth();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'lista' | 'auditoria'>('lista');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [logs, setLogs] = useState<AuditLogRecord[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+  const [isSavingUser, setIsSavingUser] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [formState, setFormState] = useState<UserFormState>(emptyFormState);
+  const [userToDelete, setUserToDelete] = useState<ManagedUser | null>(null);
+  const [auditFilters, setAuditFilters] = useState<AuditLogFilters>({
+    modulo: '',
+    usuario: '',
+    data_inicio: '',
+    data_fim: '',
+  });
 
-  // Mock Data: Users
-  const [users] = useState<User[]>([
-    {
-      id: 1,
-      nome: 'Carlos Silva',
-      email: 'carlos.admin@nexadash.com',
-      status: 'ativo',
-      perfil: 'Administrador',
-      setor: 'Geral',
-      data_criacao: '2025-01-15',
-      ultimo_acesso: '2026-03-03 14:20',
-      foto: 'C',
-      permissoes: { ver_leads: true, editar_leads: true, excluir_leads: true, ver_financeiro: true, criar_usuario: true }
-    },
-    {
-      id: 2,
-      nome: 'Fernanda Vendas',
-      email: 'fernanda@nexadash.com',
-      status: 'ativo',
-      perfil: 'Gerente de Vendas',
-      setor: 'Vendas',
-      data_criacao: '2025-02-10',
-      ultimo_acesso: '2026-03-03 09:15',
-      foto: 'F',
-      permissoes: { ver_leads: true, editar_leads: true, excluir_leads: false, ver_financeiro: false, criar_usuario: false }
-    },
-    {
-      id: 3,
-      nome: 'Roberto Suporte',
-      email: 'roberto@nexadash.com',
-      status: 'inativo',
-      perfil: 'Atendente',
-      setor: 'Suporte',
-      data_criacao: '2025-06-22',
-      ultimo_acesso: '2026-01-10 16:45',
-      foto: 'R',
-      permissoes: { ver_leads: true, editar_leads: false, excluir_leads: false, ver_financeiro: false, criar_usuario: false }
+  useEffect(() => {
+    const carregarUsuarios = async () => {
+    try {
+      const usersResponse = await listUsers();
+      setUsers(usersResponse);
+      } catch (error) {
+        console.error('Erro ao carregar usuários:', error);
+        showToast({
+          tone: 'error',
+          title: 'Nao consegui carregar os usuarios',
+          description: 'A lista de usuarios nao veio da API agora.',
+        });
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+
+    carregarUsuarios();
+  }, [showToast]);
+
+  useEffect(() => {
+    const carregarLogs = async () => {
+      setIsLoadingLogs(true);
+
+    try {
+      const logsResponse = await listAuditLogs(auditFilters);
+      setLogs(logsResponse);
+      } catch (error) {
+        console.error('Erro ao carregar auditoria:', error);
+        showToast({
+          tone: 'error',
+          title: 'Nao consegui carregar a auditoria',
+          description: 'Os logs nao vieram da API agora.',
+        });
+      } finally {
+        setIsLoadingLogs(false);
+      }
+    };
+
+    carregarLogs();
+  }, [auditFilters, showToast]);
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const target = `${user.nome} ${user.email} ${user.perfil} ${user.setor}`.toLowerCase();
+      return target.includes(searchTerm.toLowerCase());
+    });
+  }, [searchTerm, users]);
+
+  const formatLogDate = (date: string) =>
+    new Intl.DateTimeFormat('pt-BR', {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    }).format(new Date(date));
+
+  const canInactivateUsers = authUser?.role === 'admin';
+
+  const handleOpenModal = (user?: ManagedUser) => {
+    if (user) {
+      setEditingUser(user);
+      setFormState({
+        name: user.nome,
+        email: user.email,
+        password: '',
+        role: user.role,
+        status: user.status,
+        setor: user.setor,
+        permissions: { ...user.permissoes },
+      });
+    } else {
+      setEditingUser(null);
+      setFormState(emptyFormState());
     }
-  ]);
 
-  // Mock Data: Audit Logs
-  const logs: AuditLog[] = [
-    { id: 101, usuario_nome: 'Carlos Silva', acao: 'Criou o usuário Fernanda Vendas', data_hora: '2025-02-10 09:00' },
-    { id: 102, usuario_nome: 'Fernanda Vendas', acao: 'Mudou o status do lead Maria para Negociação', data_hora: '2026-03-03 10:30' },
-    { id: 103, usuario_nome: 'Carlos Silva', acao: 'Inativou o usuário Roberto Suporte', data_hora: '2026-01-10 17:00' },
-    { id: 104, usuario_nome: 'Fernanda Vendas', acao: 'Editou os dados do lead João', data_hora: '2026-03-03 11:45' },
-    { id: 105, usuario_nome: 'Carlos Silva', acao: 'Excluiu o lead Teste', data_hora: '2026-03-02 15:20' }
-  ];
-
-  const handleOpenModal = (user?: User) => {
-    if (user) setEditingUser(user);
-    else setEditingUser(null);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingUser(null);
+    setFormState(emptyFormState());
+  };
+
+  const handleRoleChange = (role: UserRole) => {
+    const roleOption = roleOptions.find((option) => option.value === role);
+
+    setFormState((prev) => ({
+      ...prev,
+      role,
+      setor: roleOption?.defaultSetor ?? prev.setor,
+      permissions: { ...defaultPermissionsByRole[role] },
+    }));
+  };
+
+  const handlePermissionToggle = (permission: PermissionKey) => {
+    setFormState((prev) => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [permission]: !prev.permissions[permission],
+      },
+    }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSavingUser(true);
+
+    const payload = {
+      name: formState.name,
+      email: formState.email,
+      password: formState.password || null,
+      role: formState.role,
+      status: formState.status,
+      setor: formState.setor,
+      permissions: formState.permissions,
+    };
+
+    try {
+      const savedUser = editingUser
+        ? await updateManagedUser(editingUser.id, payload)
+        : await createManagedUser(payload);
+
+      setUsers((prev) => {
+        if (editingUser) {
+          return prev.map((user) => (user.id === savedUser.id ? savedUser : user));
+        }
+
+        return [savedUser, ...prev];
+      });
+
+      handleCloseModal();
+      showToast({
+        tone: 'success',
+        title: editingUser ? 'Usuario atualizado' : 'Usuario criado',
+        description: editingUser ? 'As alteracoes foram salvas com sucesso.' : 'O novo usuario foi cadastrado com sucesso.',
+      });
+    } catch (error) {
+      console.error('Erro ao salvar usuário:', error);
+      showToast({
+        tone: 'error',
+        title: 'Nao consegui salvar o usuario',
+        description: 'A API nao confirmou essa alteracao agora.',
+      });
+    } finally {
+      setIsSavingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) {
+      return;
+    }
+
+    setIsDeletingUser(true);
+
+    try {
+      const response = await deleteManagedUser(userToDelete.id);
+      setUsers((prev) => prev.map((user) => (user.id === response.user.id ? response.user : user)));
+      setUserToDelete(null);
+      showToast({
+        tone: 'success',
+        title: 'Usuario inativado',
+        description: `${response.user.nome} perdeu o acesso normal, mas o historico foi mantido.`,
+      });
+    } catch (error) {
+      console.error('Erro ao inativar usuário:', error);
+      showToast({
+        tone: 'error',
+        title: 'Nao consegui inativar o usuario',
+        description: 'A API nao confirmou essa mudanca agora.',
+      });
+    } finally {
+      setIsDeletingUser(false);
+    }
   };
 
   return (
@@ -96,7 +320,11 @@ function Users() {
           <h2 className="text-2xl font-bold text-white mb-1">Usuários & Acessos</h2>
           <p className="text-gray-400 text-sm">Gerencie sua equipe, permissões e monitore as atividades.</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-2">
+           <ContextHelp title="Ajuda de usuarios">
+             <p>Usuario nao e apagado da historia. Inativar so corta o uso normal da conta.</p>
+             <p>Os logs de auditoria mostram quem fez o que e em qual modulo.</p>
+           </ContextHelp>
            <button 
              onClick={() => setActiveTab('lista')}
              className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${activeTab === 'lista' ? 'bg-[#23272d] text-white border-t border-l border-r border-[#00e6e6]' : 'text-gray-400 hover:text-white'}`}
@@ -114,12 +342,17 @@ function Users() {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden relative">
-        
         {/* Users List View */}
         {activeTab === 'lista' && (
           <div className="absolute inset-0 flex flex-col bg-[#23272d] rounded-2xl shadow-2xl border border-gray-800 p-6">
             <div className="flex justify-between items-center mb-6">
-              <input type="text" placeholder="Buscar usuário por nome ou email..." className="w-1/3 bg-[#1a1e23] border border-gray-700 text-white text-sm rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Buscar usuário por nome ou email..."
+                className="w-1/3 bg-[#1a1e23] border border-gray-700 text-white text-sm rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]"
+              />
               <button 
                 onClick={() => handleOpenModal()}
                 className="bg-[#00e6e6] text-[#1a1e23] hover:bg-opacity-80 px-4 py-2 rounded-lg text-sm font-bold transition flex items-center"
@@ -141,12 +374,20 @@ function Users() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  {users.map((user) => (
+                  {isLoadingUsers ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center text-gray-500">Carregando usuários...</td>
+                    </tr>
+                  ) : filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center text-gray-500">Nenhum usuário encontrado.</td>
+                    </tr>
+                  ) : filteredUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-[#2a3038] transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white font-bold shrink-0">
-                            {user.foto || user.nome.charAt(0)}
+                            {user.nome.charAt(0)}
                           </div>
                           <div>
                             <p className="text-white font-semibold">{user.nome}</p>
@@ -168,9 +409,20 @@ function Users() {
                         <p className="text-xs">Criado em: {user.data_criacao}</p>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button onClick={() => handleOpenModal(user)} className="text-[#00e6e6] hover:text-white transition-colors">
-                          Editar
-                        </button>
+                        <div className="flex justify-end gap-3">
+                          <button onClick={() => handleOpenModal(user)} className="text-[#00e6e6] hover:text-white transition-colors">
+                            Editar
+                          </button>
+                          {canInactivateUsers && user.status === 'ativo' && (
+                            <button
+                              type="button"
+                              onClick={() => setUserToDelete(user)}
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                            >
+                              Inativar
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -183,11 +435,62 @@ function Users() {
         {/* Audit Logs View */}
         {activeTab === 'auditoria' && (
           <div className="absolute inset-0 flex flex-col bg-[#23272d] rounded-2xl shadow-2xl border border-gray-800 p-6">
-            <h3 className="text-lg font-bold text-white mb-6">Logs Recentes do Sistema</h3>
+            <div className="mb-6 flex flex-col gap-4 border-b border-gray-700 pb-5">
+              <div>
+                <h3 className="text-lg font-bold text-white">Logs Recentes do Sistema</h3>
+                <p className="mt-1 text-sm text-gray-400">Filtre por módulo, nome da pessoa e período para achar mais rápido o que aconteceu.</p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
+                <select
+                  value={auditFilters.modulo}
+                  onChange={(event) => setAuditFilters((prev) => ({ ...prev, modulo: event.target.value }))}
+                  className="bg-[#1a1e23] border border-gray-700 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-[#00e6e6]"
+                >
+                  <option value="">Todos os módulos</option>
+                  {Object.entries(moduleLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="text"
+                  value={auditFilters.usuario}
+                  onChange={(event) => setAuditFilters((prev) => ({ ...prev, usuario: event.target.value }))}
+                  placeholder="Filtrar por usuário"
+                  className="bg-[#1a1e23] border border-gray-700 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-[#00e6e6]"
+                />
+
+                <input
+                  type="date"
+                  value={auditFilters.data_inicio}
+                  onChange={(event) => setAuditFilters((prev) => ({ ...prev, data_inicio: event.target.value }))}
+                  className="bg-[#1a1e23] border border-gray-700 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-[#00e6e6]"
+                />
+
+                <input
+                  type="date"
+                  value={auditFilters.data_fim}
+                  onChange={(event) => setAuditFilters((prev) => ({ ...prev, data_fim: event.target.value }))}
+                  className="bg-[#1a1e23] border border-gray-700 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-[#00e6e6]"
+                />
+              </div>
+            </div>
+
             <div className="flex-1 overflow-auto relative">
               <div className="space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-700 before:to-transparent">
                  
-                 {logs.map((log) => (
+                 {isLoadingLogs ? (
+                   <div className="rounded-xl bg-[#1a1e23] px-4 py-8 text-center text-gray-500">
+                     Carregando logs...
+                   </div>
+                 ) : logs.length === 0 ? (
+                   <div className="rounded-xl bg-[#1a1e23] px-4 py-8 text-center text-gray-500">
+                     Nenhum log encontrado.
+                   </div>
+                 ) : logs.map((log) => (
                     <div key={log.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#23272d] bg-[#1a1e23] text-gray-500 group-[.is-active]:text-[#ff8c00] shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -195,9 +498,14 @@ function Users() {
                       <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-[#1a1e23] p-4 rounded-xl border border-gray-800 shadow">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-1">
                           <h4 className="font-bold text-white text-sm">{log.usuario_nome}</h4>
-                          <span className="text-xs text-gray-500 font-mono">{log.data_hora}</span>
+                          <span className="text-xs text-gray-500 font-mono">{formatLogDate(log.data_hora)}</span>
                         </div>
-                        <p className="text-sm text-gray-400">{log.acao}</p>
+                        <p className="text-sm text-gray-300 leading-relaxed">{log.acao}</p>
+                        <div className="mt-3">
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${moduleBadgeClasses[log.modulo] ?? 'bg-gray-500/10 text-gray-300 border-gray-500/30'}`}>
+                            {moduleLabels[log.modulo] ?? log.modulo}
+                          </span>
+                        </div>
                       </div>
                     </div>
                  ))}
@@ -222,16 +530,25 @@ function Users() {
             </div>
 
             <div className="p-6 overflow-y-auto flex-1">
-              <form className="space-y-6">
+              <form id="user-form" className="space-y-6" onSubmit={handleSubmit}>
                 
                 {/* Status Switch (if editing) */}
-                {editingUser && (
+                {editingUser && canInactivateUsers && (
                   <div className="flex items-center space-x-3 mb-4 p-4 bg-[#1a1e23] rounded-lg border border-gray-800">
                     <span className="text-sm font-semibold text-white">Status do Usuário:</span>
-                    <button type="button" className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${editingUser.status === 'ativo' ? 'bg-green-500' : 'bg-gray-600'}`}>
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${editingUser.status === 'ativo' ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormState((prev) => ({
+                          ...prev,
+                          status: prev.status === 'ativo' ? 'inativo' : 'ativo',
+                        }))
+                      }
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formState.status === 'ativo' ? 'bg-green-500' : 'bg-gray-600'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formState.status === 'ativo' ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
-                    <span className="text-xs text-gray-400 uppercase tracking-wider">{editingUser.status}</span>
+                    <span className="text-xs text-gray-400 uppercase tracking-wider">{formState.status}</span>
                   </div>
                 )}
 
@@ -242,15 +559,31 @@ function Users() {
                     
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 mb-1">Nome Completo</label>
-                      <input type="text" defaultValue={editingUser?.nome} className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]" />
+                      <input
+                        type="text"
+                        value={formState.name}
+                        onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
+                        className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 mb-1">E-mail (Login)</label>
-                      <input type="email" defaultValue={editingUser?.email} className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]" />
+                      <input
+                        type="email"
+                        value={formState.email}
+                        onChange={(event) => setFormState((prev) => ({ ...prev, email: event.target.value }))}
+                        className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 mb-1">{editingUser ? 'Nova Senha (deixe em branco para manter)' : 'Senha Inicial'}</label>
-                      <input type="password" placeholder="******" className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]" />
+                      <input
+                        type="password"
+                        value={formState.password}
+                        onChange={(event) => setFormState((prev) => ({ ...prev, password: event.target.value }))}
+                        placeholder="******"
+                        className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]"
+                      />
                     </div>
                   </div>
 
@@ -260,16 +593,25 @@ function Users() {
                     
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 mb-1">Perfil de Usuário</label>
-                      <select defaultValue={editingUser?.perfil || 'Atendente'} className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6] appearance-none">
-                        <option value="Administrador">Administrador</option>
-                        <option value="Gerente de Vendas">Gerente de Vendas</option>
-                        <option value="Atendente">Atendente</option>
-                        <option value="Financeiro">Financeiro</option>
+                      <select
+                        value={formState.role}
+                        onChange={(event) => handleRoleChange(event.target.value as UserRole)}
+                        className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6] appearance-none"
+                      >
+                        {roleOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-gray-400 mb-1">Setor / Área</label>
-                      <select defaultValue={editingUser?.setor || 'Vendas'} className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6] appearance-none">
+                      <select
+                        value={formState.setor}
+                        onChange={(event) => setFormState((prev) => ({ ...prev, setor: event.target.value }))}
+                        className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6] appearance-none"
+                      >
                         <option value="Geral">Geral (Todas as áreas)</option>
                         <option value="Vendas">Vendas</option>
                         <option value="Financeiro">Financeiro</option>
@@ -283,20 +625,21 @@ function Users() {
                 {/* Permissions Toggles */}
                 <div>
                   <h4 className="text-sm uppercase tracking-widest font-bold text-gray-500 border-b border-gray-700 pb-2 mb-4 mt-6">Permissões Específicas</h4>
+                  <p className="mb-4 text-xs text-gray-400">
+                    Quando você troca o cargo, a tela já monta as permissões base daquele perfil.
+                  </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     
-                    {[
-                      { key: 'ver_leads', label: 'Ver Leads' },
-                      { key: 'editar_leads', label: 'Editar Leads' },
-                      { key: 'excluir_leads', label: 'Excluir Leads' },
-                      { key: 'ver_financeiro', label: 'Ver Financeiro' },
-                      { key: 'criar_usuario', label: 'Criar Usuários' }
-                    ].map((perm) => (
-                      <div key={perm.key} className="flex items-center space-x-3 p-3 bg-[#1a1e23] rounded-lg border border-gray-800">
-                        <button type="button" className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 ${editingUser?.permissoes[perm.key as Permission] ? 'bg-[#00e6e6]' : 'bg-gray-700'}`}>
-                          <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${editingUser?.permissoes[perm.key as Permission] ? 'translate-x-4' : 'translate-x-0'}`} />
+                    {(Object.keys(permissionLabels) as PermissionKey[]).map((permission) => (
+                      <div key={permission} className="flex items-center space-x-3 p-3 bg-[#1a1e23] rounded-lg border border-gray-800">
+                        <button
+                          type="button"
+                          onClick={() => handlePermissionToggle(permission)}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 ${formState.permissions[permission] ? 'bg-[#00e6e6]' : 'bg-gray-700'}`}
+                        >
+                          <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formState.permissions[permission] ? 'translate-x-4' : 'translate-x-0'}`} />
                         </button>
-                        <span className="text-sm font-medium text-gray-300">{perm.label}</span>
+                        <span className="text-sm font-medium text-gray-300">{permissionLabels[permission]}</span>
                       </div>
                     ))}
 
@@ -308,14 +651,29 @@ function Users() {
             
             <div className="px-6 py-4 border-t border-gray-700 bg-[#1a1e23] flex justify-end space-x-3 rounded-b-2xl">
                <button onClick={handleCloseModal} className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white transition-colors">Cancelar</button>
-               <button className="px-6 py-2 bg-[#00e6e6] text-[#1a1e23] text-sm font-bold rounded-lg hover:bg-opacity-80 transition-colors shadow-[0_0_15px_rgba(0,230,230,0.3)]">
-                 {editingUser ? 'Salvar Alterações' : 'Cadastrar Usuário'}
+               <button
+                 type="submit"
+                 form="user-form"
+                 className="px-6 py-2 bg-[#00e6e6] text-[#1a1e23] text-sm font-bold rounded-lg hover:bg-opacity-80 transition-colors shadow-[0_0_15px_rgba(0,230,230,0.3)] disabled:bg-gray-700 disabled:text-gray-500"
+                 disabled={isSavingUser}
+               >
+                 {isSavingUser ? 'Salvando...' : editingUser ? 'Salvar Alterações' : 'Cadastrar Usuário'}
                </button>
-            </div>
+             </div>
           </div>
         </div>
       )}
 
+      <ConfirmActionModal
+        isOpen={userToDelete !== null}
+        title="Inativar usuário?"
+        description={`A pessoa ${userToDelete?.nome ?? ''} vai perder o uso normal da conta, mas o histórico dela continua guardado para auditoria.`}
+        confirmLabel="Inativar usuário"
+        tone="warning"
+        isSubmitting={isDeletingUser}
+        onCancel={() => setUserToDelete(null)}
+        onConfirm={handleDeleteUser}
+      />
     </div>
   );
 }
