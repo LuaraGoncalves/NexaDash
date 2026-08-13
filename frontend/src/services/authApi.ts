@@ -1,16 +1,36 @@
-export type AuthRole = 'admin' | 'employee';
+export type AuthRole = 'admin' | 'manager' | 'employee' | 'finance';
+
+export type AuthPermissions = {
+  ver_leads?: boolean;
+  editar_leads?: boolean;
+  excluir_leads?: boolean;
+  ver_financeiro?: boolean;
+  criar_usuario?: boolean;
+};
 
 export type AuthUser = {
   id: number;
   name: string;
   email: string;
   role: AuthRole;
+  status?: 'ativo' | 'inativo';
+  setor?: string;
+  permissions?: AuthPermissions | null;
+  last_login_at?: string | null;
 };
 
 export type LoginResponse = {
   token: string;
   user: AuthUser;
 };
+
+export function getDefaultRouteForRole(role: AuthRole): string {
+  return role === 'finance'
+    ? '/crm/financeiro'
+    : role === 'employee'
+      ? '/crm/vendas'
+      : '/crm';
+}
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api';
 

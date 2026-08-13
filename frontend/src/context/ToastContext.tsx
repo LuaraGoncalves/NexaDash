@@ -1,20 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-
-type ToastTone = 'success' | 'error' | 'info';
-
-export type ToastItem = {
-  id: number;
-  title: string;
-  description?: string;
-  tone: ToastTone;
-};
-
-type ToastContextValue = {
-  showToast: (toast: Omit<ToastItem, 'id'>) => void;
-};
-
-const ToastContext = createContext<ToastContextValue | undefined>(undefined);
+import { ToastContext, type ToastItem, type ToastTone } from './toast-context';
 
 const toneStyles: Record<ToastTone, string> = {
   success: 'border-emerald-400/30 bg-emerald-500/15 text-emerald-50',
@@ -68,14 +54,4 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       </div>
     </ToastContext.Provider>
   );
-}
-
-export function useToast() {
-  const context = useContext(ToastContext);
-
-  if (!context) {
-    throw new Error('useToast deve ser usado dentro de ToastProvider');
-  }
-
-  return context;
 }

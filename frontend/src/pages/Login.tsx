@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
+import { getDefaultRouteForRole } from '../services/authApi';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export default function Login() {
 
     try {
       const user = await login(email, password);
-      navigate(user.role === 'admin' ? '/crm' : '/crm/vendas', { replace: true });
+      navigate(getDefaultRouteForRole(user.role), { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível entrar.');
     } finally {
@@ -75,6 +76,8 @@ export default function Login() {
         <div className="mt-8 rounded-2xl border border-white/10 bg-[#11161c] p-4 text-sm text-slate-400">
           <p className="font-semibold text-slate-200 mb-2">Contas de teste</p>
           <p>Admin: admin@nexadash.local / password</p>
+          <p>Gerente: gerente@nexadash.local / password</p>
+          <p>Financeiro: financeiro@nexadash.local / password</p>
           <p>Caixa: caixa@nexadash.local / password</p>
         </div>
       </div>

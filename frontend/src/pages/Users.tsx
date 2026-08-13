@@ -15,8 +15,8 @@ import {
 } from '../services/usersApi';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import ContextHelp from '../components/ContextHelp';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/useAuth';
+import { useToast } from '../context/useToast';
 
 type RoleOption = {
   value: UserRole;
@@ -66,7 +66,7 @@ const defaultPermissionsByRole: Record<UserRole, UserPermissions> = {
   },
   employee: {
     ver_leads: true,
-    editar_leads: false,
+    editar_leads: true,
     excluir_leads: false,
     ver_financeiro: false,
     criar_usuario: false,
