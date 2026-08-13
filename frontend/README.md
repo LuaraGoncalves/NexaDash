@@ -1,49 +1,53 @@
-NexaDash — Frontend
+# NexaDash Frontend
 
-Este repositório contém o frontend do projeto NexaDash, desenvolvido com React.
-A aplicação é responsável pela interface do usuário e pela comunicação com o backend através de uma API.
+Interface web do NexaDash, focada em CRM, PDV, financeiro e operacao comercial.
 
-O projeto encontra-se atualmente em desenvolvimento.
+## Tecnologias
 
-📦 Tecnologias
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
 
-React
+## Como rodar
 
-TypeScript
-
-Vite
-
-Tailwind CSS
-
-
- Como executar o projeto
-
-1. Acesse a pasta do frontend:
-
-cd frontend
-
-2. Instale as dependências:
-
+```powershell
+cd C:\NexaDash\frontend
 npm install
-
-3. Inicie o servidor de desenvolvimento:
-
 npm run dev
+```
 
-A aplicação ficará disponível em:
+Aplicacao local:
 
-http://localhost:5173
+- `http://127.0.0.1:5173`
 
-📁 Estrutura
+## Perfis e experiencia
 
-src/ → código da aplicação
+- `admin`: painel completo
+- `manager`: painel comercial
+- `finance`: dashboard + financeiro
+- `employee`: shell rapido com PDV e leads
 
-src/pages → páginas
+## Estrutura
 
-src/components → componentes reutilizáveis
+- `src/pages`: telas por modulo
+- `src/services`: chamadas da API
+- `src/context`: autenticacao e toasts
+- `src/components`: componentes reutilizaveis
+- `src/layouts`: cascas por perfil
 
-src/routes → configuração de rotas
+## Comandos uteis
 
- Status do projeto
+```powershell
+npm run dev
+npm run build
+npx eslint src --ext .ts,.tsx
+```
 
-Em desenvolvimento
+## Dependencia de API
+
+Por padrao o frontend usa:
+
+- `http://127.0.0.1:8000/api`
+
+Se quiser trocar, use `VITE_API_URL`.

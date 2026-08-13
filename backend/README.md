@@ -1,58 +1,64 @@
-NexaDash — Backend (API)
+# NexaDash Backend
 
-Este repositório contém o backend (API) do projeto NexaDash, desenvolvido com Laravel.
-O backend é responsável por fornecer dados para o frontend através de uma API REST.
+API REST do NexaDash, responsavel por autenticacao, regras de negocio e persistencia dos modulos do CRM.
 
-No momento, o projeto encontra-se em desenvolvimento.
+## Tecnologias
 
-📦 Tecnologias
+- Laravel 12
+- PHP 8.2+
+- PostgreSQL
 
-Laravel
+## Modulos da API
 
-PHP 8.2+
+- Auth
+- Dashboard
+- Leads e mensagens
+- Vendas
+- Clientes
+- Produtos, categorias, fornecedores e unidades
+- Estoque e movimentacoes
+- Financeiro
+- Usuarios e auditoria
 
-PostgreSQL ou MySQL
+## Como rodar
 
-🚀 Como executar o projeto
-1. Acesse a pasta do backend:
-
-cd backend
-
-2. Instale as dependências:
-
+```powershell
+cd C:\NexaDash\backend
 composer install
-
-3. Configure o ambiente:
-
-Copie o arquivo .env.example para .env
-
-Ajuste as variáveis do banco de dados conforme sua máquina
-
-4. Gere a chave da aplicação:
-
 php artisan key:generate
-
-5. Crie as tabelas:
-
 php artisan migrate
+php artisan db:seed
+php artisan serve --host=127.0.0.1 --port=8000
+```
 
-6. Inicie o servidor:
+API local:
 
-php artisan serve
+- `http://127.0.0.1:8000/api`
 
-A API ficará disponível em:
+## Contas seed
 
-http://localhost:8000
+- Admin: `admin@nexadash.local` / `password`
+- Gerente: `gerente@nexadash.local` / `password`
+- Financeiro: `financeiro@nexadash.local` / `password`
+- Caixa: `caixa@nexadash.local` / `password`
 
+## Testes
 
-📁 Estrutura
+Os testes automatizados usam um banco PostgreSQL separado:
 
-routes/api.php → rotas da API
+- `nexadash_test`
 
-app/Models → modelos
+Rodar testes:
 
-app/Http/Controllers → regras de negócio
+```powershell
+cd C:\NexaDash\backend
+php artisan test
+```
 
- Status do projeto
+## Arquivos importantes
 
- Em desenvolvimento
+- `routes/api.php`: contratos da API
+- `app/Http/Controllers`: regras por modulo
+- `app/Models`: entidades e relacionamentos
+- `database/migrations`: estrutura do banco
+- `database/seeders/DatabaseSeeder.php`: contas e dados iniciais
