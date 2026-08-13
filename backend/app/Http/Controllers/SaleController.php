@@ -20,34 +20,9 @@ class SaleController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'id_cliente' => ['nullable', 'integer', 'exists:customers,id'],
-            'cliente_nome' => ['nullable', 'required_without:id_cliente', 'string', 'max:255'],
-            'data_hora' => ['required', 'string', 'max:255'],
-            'total' => ['required', 'numeric', 'min:0'],
-            'forma_pagamento' => ['required', 'string', 'max:255'],
-            'status' => ['nullable', Rule::in(Sale::STATUS_OPTIONS)],
-            'itens' => ['required', 'array', 'min:1'],
-            'itens.*.id_produto' => ['required', 'integer'],
-            'itens.*.nome' => ['required', 'string', 'max:255'],
-            'itens.*.preco_unitario' => ['required', 'numeric', 'min:0'],
-            'itens.*.quantidade' => ['required', 'integer', 'min:1'],
-            'itens.*.subtotal' => ['required', 'numeric', 'min:0'],
-        ]);
+        $validated = $this->validateSalePayload($request);
 
-        $customer = isset($validated['id_cliente'])
-            ? Customer::find($validated['id_cliente'])
-            : null;
-
-        $sale = Sale::create([
-            'id_cliente' => $customer?->id,
-            'cliente_nome' => $customer?->name ?? $validated['cliente_nome'],
-            'data_hora' => $validated['data_hora'],
-            'total' => $validated['total'],
-            'forma_pagamento' => $validated['forma_pagamento'],
-            'status' => $validated['status'] ?? Sale::STATUS_ABERTA,
-            'itens' => $validated['itens'],
-        ]);
+        $sale = Sale::create($this->buildSaleAttributes($validated));
 
         $sale->update([
             'protocolo' => $this->generateProtocol($sale),
@@ -66,19 +41,26 @@ class SaleController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $validated = $request->validate([
-            'status' => ['required', Rule::in(Sale::STATUS_OPTIONS)],
-        ]);
-
         $sale = Sale::findOrFail($id);
         $statusAnterior = $sale->status;
-        $sale->update([
-            'status' => $validated['status'],
-        ]);
 
-        $acao = $sale->status === Sale::STATUS_CANCELADA
+        if (! $request->hasAny(['id_cliente', 'cliente_nome', 'data_hora', 'total', 'forma_pagamento', 'itens'])) {
+            $validated = $request->validate([
+                'status' => ['required', Rule::in(Sale::STATUS_OPTIONS)],
+            ]);
+
+            $sale->update([
+                'status' => $validated['status'],
+            ]);
+        } else {
+            $validated = $this->validateSalePayload($request, true);
+            $sale->update($this->buildSaleAttributes($validated));
+        }
+
+        $customerLabel = $sale->customer?->name ?? $sale->cliente_nome;
+        $acao = $sale->status === Sale::STATUS_CANCELADA && $statusAnterior !== Sale::STATUS_CANCELADA
             ? "Venda cancelada: {$sale->protocolo}"
-            : "Venda atualizada: {$sale->protocolo} ({$statusAnterior} -> {$sale->status})";
+            : "Venda editada: {$sale->protocolo} ({$statusAnterior} -> {$sale->status}) para {$customerLabel}";
 
         AuditLog::record(
             $request->user()?->id,
@@ -121,5 +103,40 @@ class SaleController extends Controller
         $idPart = str_pad((string) $sale->id, 3, '0', STR_PAD_LEFT);
 
         return "VND-{$datePart}-{$idPart}";
+    }
+
+    private function validateSalePayload(Request $request, bool $requireStatus = false): array
+    {
+        return $request->validate([
+            'id_cliente' => ['nullable', 'integer', 'exists:customers,id'],
+            'cliente_nome' => ['nullable', 'required_without:id_cliente', 'string', 'max:255'],
+            'data_hora' => ['required', 'string', 'max:255'],
+            'total' => ['required', 'numeric', 'min:0'],
+            'forma_pagamento' => ['required', 'string', 'max:255'],
+            'status' => [$requireStatus ? 'required' : 'nullable', Rule::in(Sale::STATUS_OPTIONS)],
+            'itens' => ['required', 'array', 'min:1'],
+            'itens.*.id_produto' => ['required', 'integer'],
+            'itens.*.nome' => ['required', 'string', 'max:255'],
+            'itens.*.preco_unitario' => ['required', 'numeric', 'min:0'],
+            'itens.*.quantidade' => ['required', 'integer', 'min:1'],
+            'itens.*.subtotal' => ['required', 'numeric', 'min:0'],
+        ]);
+    }
+
+    private function buildSaleAttributes(array $validated): array
+    {
+        $customer = isset($validated['id_cliente'])
+            ? Customer::find($validated['id_cliente'])
+            : null;
+
+        return [
+            'id_cliente' => $customer?->id,
+            'cliente_nome' => $customer?->name ?? $validated['cliente_nome'],
+            'data_hora' => $validated['data_hora'],
+            'total' => $validated['total'],
+            'forma_pagamento' => $validated['forma_pagamento'],
+            'status' => $validated['status'] ?? Sale::STATUS_ABERTA,
+            'itens' => $validated['itens'],
+        ];
     }
 }

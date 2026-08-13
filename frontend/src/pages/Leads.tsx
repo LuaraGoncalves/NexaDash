@@ -275,6 +275,15 @@ function Leads() {
   }, [chatSearch, leadsOrdenados]);
 
   const mensagensSelecionadas = selectedLead ? messagesByLeadId[selectedLead.id] ?? [] : [];
+  const quickReplies = useMemo(() => {
+    const leadName = selectedLead?.nome ?? 'cliente';
+
+    return [
+      `Oi, ${leadName}! Vi sua mensagem e vou te ajudar agora.`,
+      'Posso te passar os detalhes e valores por aqui.',
+      'Se preferir, eu separo as melhores opcoes para voce escolher.',
+    ];
+  }, [selectedLead?.nome]);
 
   const getStatusColor = (status: Lead['status']) => {
     switch (status) {
@@ -400,9 +409,12 @@ function Leads() {
                       </div>
                       <div>
                         <h3 className="text-white font-semibold">{selectedLead.nome}</h3>
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-2">
                           <span className={`w-2 h-2 rounded-full ${getStatusColor(selectedLead.status)}`}></span>
                           <span className="text-[10px] text-gray-400 capitalize">{selectedLead.status}</span>
+                          <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                            {mensagensSelecionadas.length} mensagens
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -430,8 +442,13 @@ function Leads() {
 
                         return (
                           <div key={mensagem.id} className={`flex ${isTeam ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`${isTeam ? 'bg-[#00e6e6] bg-opacity-20 text-[#00e6e6] rounded-tl-xl rounded-br-xl rounded-bl-xl' : 'bg-[#2a3038] text-gray-200 rounded-tr-xl rounded-br-xl rounded-bl-xl'} p-3 max-w-[70%] shadow-md`}>
-                              <p className="text-[11px] font-black uppercase tracking-[0.2em] mb-2 opacity-70">{mensagem.sender_name}</p>
+                            <div className={`${isTeam ? 'bg-[#00e6e6] bg-opacity-20 text-[#00e6e6] rounded-tl-xl rounded-br-xl rounded-bl-xl border border-cyan-500/10' : 'bg-[#2a3038] text-gray-200 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-white/5'} p-3 max-w-[70%] shadow-md`}>
+                              <div className="mb-2 flex items-center justify-between gap-3">
+                                <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-70">{mensagem.sender_name}</p>
+                                <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] opacity-70">
+                                  {isTeam ? 'Equipe' : 'Lead'}
+                                </span>
+                              </div>
                               <p className="text-sm">{mensagem.message}</p>
                               <span className="text-[10px] opacity-70 block text-right mt-1">{formatDateTimeLabel(mensagem.sent_at)}</span>
                             </div>
@@ -442,6 +459,18 @@ function Leads() {
                   </div>
 
                   <div className="p-4 bg-[#1a1e23] border-t border-gray-700">
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {quickReplies.map((reply) => (
+                        <button
+                          key={reply}
+                          type="button"
+                          onClick={() => setMessageDraft(reply)}
+                          className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-slate-300 hover:border-cyan-400/40 hover:text-white"
+                        >
+                          {reply}
+                        </button>
+                      ))}
+                    </div>
                     <div className="flex items-center bg-[#2a3038] rounded-full px-4 py-2">
                       <input
                         type="text"

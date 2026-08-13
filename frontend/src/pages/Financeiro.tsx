@@ -117,6 +117,8 @@ export default function Financeiro() {
   const [filterBusca, setFilterBusca] = useState('');
   const [filterTipo, setFilterTipo] = useState<'Todos' | TipoTransacao>('Todos');
   const [filterStatus, setFilterStatus] = useState<'Todos' | StatusTransacao>('Todos');
+  const [filterDateStart, setFilterDateStart] = useState('');
+  const [filterDateEnd, setFilterDateEnd] = useState('');
 
   const [isModalTransacaoOpen, setIsModalTransacaoOpen] = useState(false);
   const [isModalCategoriaOpen, setIsModalCategoriaOpen] = useState(false);
@@ -163,11 +165,13 @@ export default function Financeiro() {
           transacao.protocolo_venda?.toLowerCase().includes(filterBusca.toLowerCase());
         const matchTipo = filterTipo === 'Todos' || transacao.tipo === filterTipo;
         const matchStatus = filterStatus === 'Todos' || transacao.status === filterStatus;
+        const matchDateStart = !filterDateStart || transacao.data_vencimento >= filterDateStart;
+        const matchDateEnd = !filterDateEnd || transacao.data_vencimento <= filterDateEnd;
 
-        return matchBusca && matchTipo && matchStatus;
+        return matchBusca && matchTipo && matchStatus && matchDateStart && matchDateEnd;
       })
       .sort((a, b) => new Date(b.data_vencimento).getTime() - new Date(a.data_vencimento).getTime());
-  }, [filterBusca, filterStatus, filterTipo, transacoes]);
+  }, [filterBusca, filterStatus, filterTipo, filterDateStart, filterDateEnd, transacoes]);
 
   const totalReceitas = transacoesFiltradas
     .filter((transacao) => transacao.tipo === 'receita' && transacao.status === 'Pago')
@@ -186,6 +190,14 @@ export default function Financeiro() {
   const totalPendentePagar = transacoesFiltradas
     .filter((transacao) => transacao.tipo === 'despesa' && transacao.status === 'Pendente')
     .reduce((acc, transacao) => acc + transacao.valor, 0);
+
+  const clearFilters = () => {
+    setFilterBusca('');
+    setFilterTipo('Todos');
+    setFilterStatus('Todos');
+    setFilterDateStart('');
+    setFilterDateEnd('');
+  };
 
   const handleNovaTransacaoClick = (tipo: TipoTransacao) => {
     setEditingTransaction(null);
@@ -477,7 +489,7 @@ export default function Financeiro() {
                   />
                 </div>
 
-                <div className="flex space-x-3 w-full md:w-auto">
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
                   <select
                     value={filterTipo}
                     onChange={(event) => setFilterTipo(event.target.value as 'Todos' | TipoTransacao)}
@@ -498,7 +510,45 @@ export default function Financeiro() {
                     <option value="Pendente">Status: Pendentes</option>
                     <option value="Cancelado">Status: Cancelados</option>
                   </select>
+
+                  <input
+                    type="date"
+                    value={filterDateStart}
+                    onChange={(event) => setFilterDateStart(event.target.value)}
+                    className="flex-1 md:w-auto bg-[#23272d] border border-gray-700 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-[#00e6e6]"
+                  />
+
+                  <input
+                    type="date"
+                    value={filterDateEnd}
+                    onChange={(event) => setFilterDateEnd(event.target.value)}
+                    className="flex-1 md:w-auto bg-[#23272d] border border-gray-700 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-[#00e6e6]"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="rounded-lg border border-gray-700 px-4 py-2.5 text-xs font-black uppercase tracking-[0.2em] text-gray-300 hover:border-gray-500"
+                  >
+                    Limpar
+                  </button>
                 </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 border-b border-gray-800 bg-[#161b22] px-6 py-3">
+                <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-300">
+                  {transacoesFiltradas.length} lançamentos visíveis
+                </span>
+                {filterDateStart && (
+                  <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-bold text-slate-300">
+                    de {filterDateStart}
+                  </span>
+                )}
+                {filterDateEnd && (
+                  <span className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-bold text-slate-300">
+                    até {filterDateEnd}
+                  </span>
+                )}
               </div>
 
               <div className="flex-1 overflow-auto p-4">

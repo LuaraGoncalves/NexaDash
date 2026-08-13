@@ -173,6 +173,12 @@ export default function Products() {
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [isSavingSupplier, setIsSavingSupplier] = useState(false);
   const [isSavingUnit, setIsSavingUnit] = useState(false);
+  const productCostPreview = Number(productForm.preco_custo || 0);
+  const productSalePreview = Number(productForm.preco_venda || 0);
+  const productQuantityPreview = Number(productForm.quantidade || 0);
+  const productStockMinPreview = Number(productForm.estoque_minimo || 0);
+  const productMarginPreview = productCostPreview > 0 ? ((productSalePreview - productCostPreview) / productCostPreview) * 100 : 0;
+  const productEstimatedStockValue = productQuantityPreview * productCostPreview;
 
   const carregarDados = useCallback(async (showLoading = false) => {
     if (showLoading) {
@@ -1262,6 +1268,47 @@ export default function Products() {
                   <FieldNumber label="Preco de venda" value={productForm.preco_venda} onChange={(value) => setProductForm((prev) => ({ ...prev, preco_venda: value }))} />
                   <FieldNumber label="Quantidade" value={productForm.quantidade} onChange={(value) => setProductForm((prev) => ({ ...prev, quantidade: value }))} />
                   <FieldNumber label="Estoque minimo" value={productForm.estoque_minimo} onChange={(value) => setProductForm((prev) => ({ ...prev, estoque_minimo: value }))} />
+                </div>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-orange-300">Resumo comercial</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-gray-400">Margem estimada</p>
+                      <p className="mt-1 text-2xl font-black text-white">{Number.isFinite(productMarginPreview) ? `${productMarginPreview.toFixed(1)}%` : '0.0%'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-400">Valor em estoque</p>
+                      <p className="mt-1 text-2xl font-black text-white">{formatCurrency(productEstimatedStockValue)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-xl border border-white/10 bg-[#1a1e23] p-3 text-sm text-slate-300">
+                    {productQuantityPreview <= productStockMinPreview
+                      ? 'Esse produto vai nascer com alerta de baixo estoque. Isso ajuda a mostrar o monitoramento logo na vitrine.'
+                      : 'O estoque inicial esta acima do minimo e o produto entra no catalogo sem alerta.'}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-[#1a1e23] p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400">Prévia visual</p>
+                  <div className="mt-4 flex items-center gap-4">
+                    <div className="h-20 w-20 overflow-hidden rounded-2xl border border-white/10 bg-[#23272d]">
+                      {productForm.foto_url ? (
+                        <img src={productForm.foto_url} alt={productForm.nome || 'Prévia do produto'} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
+                          sem foto
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-lg font-black text-white">{productForm.nome || 'Nome do produto'}</p>
+                      <p className="mt-1 text-xs font-mono text-gray-500">{productForm.sku || 'SKU-000'}</p>
+                      <p className="mt-2 text-sm text-[#00e6e6]">{formatCurrency(productSalePreview)}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </form>

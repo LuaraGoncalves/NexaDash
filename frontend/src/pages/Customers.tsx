@@ -43,6 +43,9 @@ export default function Customers() {
   const [editingCustomer, setEditingCustomer] = useState<Cliente | null>(null);
   const [customerToDelete, setCustomerToDelete] = useState<Cliente | null>(null);
   const [formState, setFormState] = useState<CustomerFormState>(emptyFormState);
+  const normalizedEmail = formState.email.trim();
+  const isEmailValid = !normalizedEmail || isValidEmail(normalizedEmail);
+  const formattedPreviewPhone = formatPhone(formState.phone);
 
   const canInactivateCustomers = user?.role === 'admin';
 
@@ -112,13 +115,22 @@ export default function Customers() {
       return;
     }
 
+    if (!isEmailValid) {
+      showToast({
+        tone: 'info',
+        title: 'Email com formato invalido',
+        description: 'Corrija o email antes de salvar o cliente.',
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     try {
       const payload = {
         name: formState.name,
         phone: formState.phone || null,
-        email: formState.email || null,
+        email: normalizedEmail || null,
         notes: formState.notes || null,
         status: formState.status,
       };
@@ -337,8 +349,9 @@ export default function Customers() {
                   <input
                     type="text"
                     value={formState.phone}
-                    onChange={(event) => setFormState((prev) => ({ ...prev, phone: event.target.value }))}
+                    onChange={(event) => setFormState((prev) => ({ ...prev, phone: formatPhone(event.target.value) }))}
                     className="w-full rounded-lg border border-gray-700 bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6]"
+                    placeholder="(11) 99999-9999"
                   />
                 </div>
                 <div>
@@ -347,8 +360,19 @@ export default function Customers() {
                     type="email"
                     value={formState.email}
                     onChange={(event) => setFormState((prev) => ({ ...prev, email: event.target.value }))}
-                    className="w-full rounded-lg border border-gray-700 bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6]"
+                    className={`w-full rounded-lg border bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6] ${isEmailValid ? 'border-gray-700' : 'border-red-500/60'}`}
+                    placeholder="cliente@email.com"
                   />
+                  {!isEmailValid && <p className="mt-2 text-xs text-red-300">Use um email valido, como nome@empresa.com.</p>}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-cyan-300">Prévia do cadastro</p>
+                <div className="mt-3 space-y-2">
+                  <p className="text-lg font-black text-white">{formState.name.trim() || 'Nome do cliente'}</p>
+                  <p className="text-sm text-slate-300">{formattedPreviewPhone || normalizedEmail || 'Sem contato informado ainda'}</p>
+                  <p className="text-xs text-slate-400">{formState.notes.trim() || 'Observações e detalhes aparecem aqui para a equipe.'}</p>
                 </div>
               </div>
 
@@ -380,7 +404,7 @@ export default function Customers() {
                 <button type="button" onClick={closeModal} className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white">
                   Cancelar
                 </button>
-                <button type="submit" className="rounded-lg bg-[#00e6e6] px-6 py-2 text-sm font-bold text-[#1a1e23] disabled:bg-gray-700 disabled:text-gray-500" disabled={isSaving}>
+                <button type="submit" className="rounded-lg bg-[#00e6e6] px-6 py-2 text-sm font-bold text-[#1a1e23] disabled:bg-gray-700 disabled:text-gray-500" disabled={isSaving || !isEmailValid}>
                   {isSaving ? 'Salvando...' : editingCustomer ? 'Salvar alteracoes' : 'Salvar cliente'}
                 </button>
               </div>
@@ -401,4 +425,26 @@ export default function Customers() {
       />
     </div>
   );
+}
+
+function formatPhone(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+
+  if (digits.length <= 2) {
+    return digits ? `(${digits}` : '';
+  }
+
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
+
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }

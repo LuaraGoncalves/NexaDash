@@ -1,6 +1,24 @@
 # NexaDash
 
-CRM com foco em operacao comercial leve, PDV e financeiro.
+CRM + gestao comercial leve com PDV, financeiro, leads, clientes, produtos, usuarios e auditoria.
+
+## Resumo
+
+O NexaDash foi pensado como um sistema de operacao comercial de ponta a ponta:
+
+- captura e acompanhamento de leads
+- cadastro de clientes
+- vendas e PDV
+- produtos e estoque
+- financeiro
+- usuarios, cargos e auditoria
+
+Cada perfil entra em uma experiencia diferente:
+
+- `admin`: sistema completo
+- `manager`: painel comercial
+- `finance`: painel focado em financeiro
+- `employee`: fluxo rapido de PDV e leads
 
 O projeto esta organizado como um monorepo simples:
 
@@ -17,6 +35,16 @@ O projeto esta organizado como um monorepo simples:
 - Financeiro
 - Usuarios e acessos
 - Auditoria
+
+## Diferenciais do projeto
+
+- API real em Laravel com persistencia em PostgreSQL
+- Frontend React + TypeScript com rotas separadas por cargo
+- PDV simplificado para operacao de caixa
+- Conversa de leads ligada ao backend
+- Auditoria real das acoes principais
+- Testes automatizados no backend e frontend
+- Build com code splitting para melhorar carregamento
 
 ## Tecnologias
 
@@ -75,6 +103,22 @@ Para rodar:
 cd C:\NexaDash\backend
 php artisan test
 ```
+
+Frontend:
+
+```powershell
+cd C:\NexaDash\frontend
+npm test
+```
+
+## Fluxos para demonstracao
+
+Se quiser validar no navegador e mostrar o projeto em portfolio, estes sao os caminhos mais fortes:
+
+1. Entrar como `admin` e mostrar dashboard, vendas, clientes, financeiro, usuarios e auditoria.
+2. Entrar como `caixa` e mostrar o fluxo rapido de PDV + leads.
+3. Entrar como `financeiro` e mostrar a experiencia separada de fluxo de caixa.
+4. Criar uma venda, editar a venda, dar baixa em um lançamento e conferir o log na auditoria.
 
 ## Estrutura rapida
 

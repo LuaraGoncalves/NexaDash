@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import ContextHelp from '../components/ContextHelp';
+import SaleEditModal from '../components/SaleEditModal';
 import { useToast } from '../context/useToast';
 import { createCustomer, listCustomers, type CustomerRecord } from '../services/customersApi';
 import { listProducts, type ProductRecord } from '../services/productsApi';
-import { createSale, deleteSale, listSales, updateSaleStatus } from '../services/salesApi';
+import { createSale, deleteSale, listSales, updateSale, updateSaleStatus, type SalePaymentMethod, type SaleStatus } from '../services/salesApi';
 
 type Cliente = {
   id: number;
@@ -30,8 +31,8 @@ type ItemVenda = {
   subtotal: number;
 };
 
-type FormaPagamento = 'Dinheiro' | 'Cartão de Crédito' | 'Cartão de Débito' | 'PIX' | 'Boleto' | 'Múltiplo';
-type StatusVenda = 'Concluída' | 'Aberta' | 'Cancelada';
+type FormaPagamento = SalePaymentMethod;
+type StatusVenda = SaleStatus;
 
 type Venda = {
   id: number;
@@ -45,16 +46,14 @@ type Venda = {
   itens: ItemVenda[];
 };
 
-const clienteBalcao: Cliente = {
-  id: 0,
-  nome: 'Consumidor Final',
-};
+const walkInCustomerLabel = 'Cliente avulso';
 
 export default function Vendas() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'nova_venda' | 'historico'>('nova_venda');
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSavingSale, setIsSavingSale] = useState(false);
+  const [isUpdatingSale, setIsUpdatingSale] = useState(false);
   const [isDeletingSale, setIsDeletingSale] = useState(false);
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -62,12 +61,14 @@ export default function Vendas() {
   const [produtos, setProdutos] = useState<ProdutoVenda[]>([]);
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [selectedClienteId, setSelectedClienteId] = useState<number>(0);
+  const [walkInCustomerName, setWalkInCustomerName] = useState(walkInCustomerLabel);
   const [searchTermPDV, setSearchTermPDV] = useState('');
   const [carrinho, setCarrinho] = useState<ItemVenda[]>([]);
   const [formaPagamentoSelecionada, setFormaPagamentoSelecionada] = useState<FormaPagamento>('PIX');
   const [historicoSearch, setHistoricoSearch] = useState('');
   const [historicoStatus, setHistoricoStatus] = useState<StatusVenda | 'Todas'>('Todas');
   const [vendaDetalhesModal, setVendaDetalhesModal] = useState<Venda | null>(null);
+  const [saleToEdit, setSaleToEdit] = useState<Venda | null>(null);
   const [saleToDelete, setSaleToDelete] = useState<Venda | null>(null);
   const [customerForm, setCustomerForm] = useState({
     name: '',
@@ -86,10 +87,7 @@ export default function Vendas() {
         ]);
 
         setVendas(salesResponse.map(mapSaleRecord));
-        setClientes([
-          clienteBalcao,
-          ...customersResponse.filter((customer) => customer.status === 'ativo').map(mapCustomerToClient),
-        ]);
+        setClientes(customersResponse.filter((customer) => customer.status === 'ativo').map(mapCustomerToClient));
         setProdutos(
           productsResponse
             .filter((product) => product.status === 'ativo')
@@ -112,7 +110,8 @@ export default function Vendas() {
 
   const totalCarrinho = carrinho.reduce((acc, item) => acc + item.subtotal, 0);
   const totalItensCarrinho = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
-  const clienteSelecionado = clientes.find((cliente) => cliente.id === selectedClienteId) ?? clienteBalcao;
+  const clienteSelecionado = clientes.find((cliente) => cliente.id === selectedClienteId);
+  const nomeClienteVenda = clienteSelecionado?.nome ?? (walkInCustomerName.trim() || walkInCustomerLabel);
 
   const produtosFiltrados = useMemo(
     () =>
@@ -210,7 +209,7 @@ export default function Vendas() {
     try {
       const sale = await createSale({
         id_cliente: selectedClienteId || undefined,
-        cliente_nome: clienteSelecionado.nome,
+        cliente_nome: nomeClienteVenda,
         data_hora: new Date().toISOString().replace('T', ' ').slice(0, 16),
         total: totalCarrinho,
         forma_pagamento: formaPagamentoSelecionada,
@@ -222,6 +221,7 @@ export default function Vendas() {
       setVendas((prev) => [novaVenda, ...prev]);
       setCarrinho([]);
       setSelectedClienteId(0);
+      setWalkInCustomerName(walkInCustomerLabel);
       setFormaPagamentoSelecionada('PIX');
       setActiveTab('historico');
       showToast({
@@ -291,6 +291,33 @@ export default function Vendas() {
         title: 'Nao consegui atualizar a venda',
         description: 'A API nao confirmou essa mudanca agora.',
       });
+    }
+  };
+
+  const handleSaveSaleEdition = async (saleId: number, payload: Parameters<typeof updateSale>[1]) => {
+    setIsUpdatingSale(true);
+
+    try {
+      const response = await updateSale(saleId, payload);
+      const vendaAtualizada = mapSaleRecord(response);
+
+      setVendas((prev) => prev.map((item) => (item.id === vendaAtualizada.id ? vendaAtualizada : item)));
+      setVendaDetalhesModal(vendaAtualizada);
+      setSaleToEdit(null);
+      showToast({
+        tone: 'success',
+        title: 'Venda atualizada',
+        description: `${vendaAtualizada.protocolo} foi editada com os novos dados.`,
+      });
+    } catch (error) {
+      console.error('Erro ao editar venda:', error);
+      showToast({
+        tone: 'error',
+        title: 'Nao consegui editar a venda',
+        description: 'A API nao confirmou essa edicao agora.',
+      });
+    } finally {
+      setIsUpdatingSale(false);
     }
   };
 
@@ -389,7 +416,7 @@ export default function Vendas() {
           <div className="absolute inset-0 overflow-y-auto pr-1">
             <div className="flex min-h-full flex-col gap-4">
               <section className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-                <SummaryCard label="Cliente" value={clienteSelecionado.nome} helper={clienteSelecionado.telefone ?? clienteSelecionado.email ?? 'Sem contato adicional'} />
+                <SummaryCard label="Cliente" value={nomeClienteVenda} helper={clienteSelecionado?.telefone ?? clienteSelecionado?.email ?? 'Venda sem cadastro formal'} />
                 <SummaryCard label="Itens" value={String(totalItensCarrinho)} helper="Quantidade total no carrinho" />
                 <SummaryCard label="Pagamento" value={formaPagamentoSelecionada} helper="Forma escolhida no fechamento" />
                 <SummaryCard label="Total" value={formatCurrency(totalCarrinho)} helper="Valor pronto para finalizar" highlight />
@@ -473,12 +500,23 @@ export default function Vendas() {
                       onChange={(event) => setSelectedClienteId(Number(event.target.value))}
                       className="mt-4 w-full rounded-2xl border border-gray-700 bg-[#1a1e23] px-5 py-4 text-base text-white outline-none focus:border-[#00e6e6]"
                     >
+                      <option value={0}>Venda sem cadastro</option>
                       {clientes.map((cliente) => (
                         <option key={cliente.id} value={cliente.id}>
                           {cliente.nome} {cliente.telefone ? `- ${cliente.telefone}` : ''}
                         </option>
                       ))}
                     </select>
+
+                    {selectedClienteId === 0 && (
+                      <input
+                        type="text"
+                        value={walkInCustomerName}
+                        onChange={(event) => setWalkInCustomerName(event.target.value)}
+                        placeholder="Nome opcional para venda avulsa"
+                        className="mt-3 w-full rounded-2xl border border-gray-700 bg-[#1a1e23] px-5 py-4 text-base text-white outline-none focus:border-[#00e6e6]"
+                      />
+                    )}
                   </section>
 
                   <section className="min-h-[260px] rounded-[1.75rem] border border-gray-800 bg-[#23272d] p-5 shadow-xl md:p-6 flex flex-col">
@@ -559,7 +597,7 @@ export default function Vendas() {
                       </div>
                       <div className="mt-2 flex items-center justify-between text-sm text-gray-400">
                         <span>Cliente</span>
-                        <span className="truncate pl-4 text-right">{clienteSelecionado.nome}</span>
+                        <span className="truncate pl-4 text-right">{nomeClienteVenda}</span>
                       </div>
                       <div className="mt-4 border-t border-gray-700 pt-4">
                         <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Total a pagar</p>
@@ -746,6 +784,13 @@ export default function Vendas() {
                     Cancelar Venda
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setSaleToEdit(vendaDetalhesModal)}
+                  className="text-sky-300 hover:text-sky-200 text-sm font-bold"
+                >
+                  Editar venda
+                </button>
               </div>
               <button onClick={() => setVendaDetalhesModal(null)} className="px-6 py-2 bg-[#00e6e6] text-[#1a1e23] text-sm font-bold rounded-lg">
                 Fechar
@@ -838,6 +883,16 @@ export default function Vendas() {
           </div>
         </div>
       )}
+
+      <SaleEditModal
+        key={saleToEdit?.id ?? 'sale-edit-modal'}
+        sale={saleToEdit}
+        customers={clientes}
+        products={produtos}
+        isSaving={isUpdatingSale}
+        onClose={() => setSaleToEdit(null)}
+        onSave={handleSaveSaleEdition}
+      />
     </div>
   );
 }
