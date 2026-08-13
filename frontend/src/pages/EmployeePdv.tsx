@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../context/useToast';
 import { createCustomer, listCustomers, type CustomerRecord } from '../services/customersApi';
 import { listProducts, type ProductRecord } from '../services/productsApi';
 import { createSale, listSales } from '../services/salesApi';

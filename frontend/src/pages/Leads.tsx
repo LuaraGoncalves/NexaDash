@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import ContextHelp from '../components/ContextHelp';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/useAuth';
+import { useToast } from '../context/useToast';
 import {
+  createLead,
   createLeadMessage,
   deleteLead,
   listLeadMessages,
@@ -15,6 +16,13 @@ import {
 } from '../services/leadsApi';
 import LeadsKanban from './LeadsKanban';
 import type { Lead } from './LeadsKanban';
+
+type LeadFormState = {
+  name: string;
+  phone: string;
+  email: string;
+  status: LeadStatus;
+};
 
 function Leads() {
   const { user } = useAuth();
@@ -29,8 +37,16 @@ function Leads() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingLead, setIsSavingLead] = useState(false);
+  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [updatingLeadId, setUpdatingLeadId] = useState<number | null>(null);
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
+  const [leadForm, setLeadForm] = useState<LeadFormState>({
+    name: '',
+    phone: '',
+    email: '',
+    status: 'novo',
+  });
 
   useEffect(() => {
     const carregarLeads = async () => {
@@ -54,15 +70,7 @@ function Leads() {
     void carregarLeads();
   }, [showToast]);
 
-  useEffect(() => {
-    if (activeTab !== 'chat' || !selectedLead) {
-      return;
-    }
-
-    void carregarMensagens(selectedLead.id);
-  }, [activeTab, selectedLead?.id]);
-
-  const carregarMensagens = async (leadId: number) => {
+  const carregarMensagens = useCallback(async (leadId: number) => {
     setIsLoadingMessages(true);
 
     try {
@@ -78,11 +86,73 @@ function Leads() {
     } finally {
       setIsLoadingMessages(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    if (activeTab !== 'chat' || !selectedLead?.id) {
+      return;
+    }
+
+    void carregarMensagens(selectedLead.id);
+  }, [activeTab, carregarMensagens, selectedLead?.id]);
 
   const handleLeadClick = (lead: Lead) => {
     setSelectedLead(lead);
     setActiveTab('chat');
+  };
+
+  const closeLeadModal = () => {
+    setIsLeadModalOpen(false);
+    setLeadForm({
+      name: '',
+      phone: '',
+      email: '',
+      status: 'novo',
+    });
+  };
+
+  const handleCreateLead = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!leadForm.name.trim()) {
+      showToast({
+        tone: 'info',
+        title: 'Nome obrigatorio',
+        description: 'Preencha pelo menos o nome antes de salvar o lead.',
+      });
+      return;
+    }
+
+    setIsSavingLead(true);
+
+    try {
+      const savedLead = await createLead({
+        name: leadForm.name,
+        phone: leadForm.phone || null,
+        email: leadForm.email || null,
+        status: leadForm.status,
+      });
+
+      const mappedLead = mapLeadFromApi(savedLead);
+      setLeads((prev) => [mappedLead, ...prev]);
+      setSelectedLead(mappedLead);
+      setActiveTab('chat');
+      closeLeadModal();
+      showToast({
+        tone: 'success',
+        title: 'Lead criado',
+        description: `${mappedLead.nome} entrou no funil comercial.`,
+      });
+    } catch (error) {
+      console.error('Erro ao criar lead:', error);
+      showToast({
+        tone: 'error',
+        title: 'Nao consegui criar o lead',
+        description: 'A API nao confirmou esse cadastro agora.',
+      });
+    } finally {
+      setIsSavingLead(false);
+    }
   };
 
   const handleStatusChange = async (leadId: number, newStatus: LeadStatus) => {
@@ -231,6 +301,13 @@ function Leads() {
           <p className="text-gray-400 text-sm">Kanban real e conversa ligada no backend de mensagens.</p>
         </div>
         <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => setIsLeadModalOpen(true)}
+            className="rounded-full bg-[#00e6e6] px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#1a1e23] transition hover:bg-opacity-85"
+          >
+            Novo lead
+          </button>
           <ContextHelp title="Ajuda de leads">
             <p>Lead e uma pessoa que ainda esta em conversa comercial.</p>
             <p>Arrastar no kanban muda o status. Na aba de conversa, as mensagens agora vao para o backend real.</p>
@@ -409,6 +486,80 @@ function Leads() {
         onCancel={() => setLeadToDelete(null)}
         onConfirm={handleDeleteLead}
       />
+
+      {isLeadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-gray-700 bg-[#23272d] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-700 bg-[#1a1e23] px-6 py-4 rounded-t-2xl">
+              <h3 className="text-lg font-bold text-white">Novo lead</h3>
+              <button type="button" onClick={closeLeadModal} className="text-gray-400 hover:text-white">
+                x
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateLead} className="space-y-4 p-6">
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">Nome *</label>
+                <input
+                  type="text"
+                  value={leadForm.name}
+                  onChange={(event) => setLeadForm((prev) => ({ ...prev, name: event.target.value }))}
+                  className="w-full rounded-lg border border-gray-700 bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1">Telefone</label>
+                  <input
+                    type="text"
+                    value={leadForm.phone}
+                    onChange={(event) => setLeadForm((prev) => ({ ...prev, phone: event.target.value }))}
+                    className="w-full rounded-lg border border-gray-700 bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={leadForm.email}
+                    onChange={(event) => setLeadForm((prev) => ({ ...prev, email: event.target.value }))}
+                    className="w-full rounded-lg border border-gray-700 bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">Status inicial</label>
+                <select
+                  value={leadForm.status}
+                  onChange={(event) => setLeadForm((prev) => ({ ...prev, status: event.target.value as LeadStatus }))}
+                  className="w-full rounded-lg border border-gray-700 bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6]"
+                >
+                  <option value="novo">Novo</option>
+                  <option value="negociacao">Negociacao</option>
+                  <option value="indeciso">Indeciso</option>
+                  <option value="aguardando">Aguardando</option>
+                  <option value="concluido">Concluido</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={closeLeadModal} className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white">
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-[#00e6e6] px-6 py-2 text-sm font-bold text-[#1a1e23] disabled:bg-gray-700 disabled:text-gray-500"
+                  disabled={isSavingLead}
+                >
+                  {isSavingLead ? 'Salvando...' : 'Salvar lead'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

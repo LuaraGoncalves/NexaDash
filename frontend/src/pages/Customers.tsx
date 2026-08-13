@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import ContextHelp from '../components/ContextHelp';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/useAuth';
+import { useToast } from '../context/useToast';
 import {
   createCustomer,
   deleteCustomer,

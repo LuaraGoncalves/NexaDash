@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ContextHelp from '../components/ContextHelp';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/useAuth';
+import { useToast } from '../context/useToast';
 import {
   createLeadMessage,
   listLeadMessages,
@@ -69,15 +69,7 @@ export default function EmployeeLeads() {
     void carregarLeads();
   }, [showToast]);
 
-  useEffect(() => {
-    if (!selectedLeadId) {
-      return;
-    }
-
-    void carregarMensagens(selectedLeadId);
-  }, [selectedLeadId]);
-
-  const carregarMensagens = async (leadId: number) => {
+  const carregarMensagens = useCallback(async (leadId: number) => {
     setIsLoadingMessages(true);
 
     try {
@@ -93,7 +85,15 @@ export default function EmployeeLeads() {
     } finally {
       setIsLoadingMessages(false);
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    if (!selectedLeadId) {
+      return;
+    }
+
+    void carregarMensagens(selectedLeadId);
+  }, [carregarMensagens, selectedLeadId]);
 
   const selectedLead = leads.find((lead) => lead.id === selectedLeadId) ?? null;
   const mensagens = selectedLead ? messagesByLeadId[selectedLead.id] ?? [] : [];

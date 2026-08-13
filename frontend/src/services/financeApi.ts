@@ -9,6 +9,12 @@ export type FinancialCategoryRecord = {
   cor: string;
 };
 
+export type FinancialCategoryPayload = {
+  nome: string;
+  tipo: FinancialCategoryType;
+  cor?: string | null;
+};
+
 export type FinancialTransactionRecord = {
   id: number;
   tipo: FinancialTransactionType;
@@ -22,6 +28,19 @@ export type FinancialTransactionRecord = {
   protocolo_venda?: string | null;
   observacoes?: string | null;
   categoria?: FinancialCategoryRecord | null;
+};
+
+export type FinancialTransactionPayload = {
+  tipo: FinancialTransactionType;
+  descricao: string;
+  valor: number;
+  data_vencimento: string;
+  data_pagamento?: string | null;
+  id_categoria?: number | null;
+  forma_pagamento: string;
+  status?: FinancialTransactionStatus;
+  protocolo_venda?: string | null;
+  observacoes?: string | null;
 };
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api';
@@ -65,6 +84,56 @@ export async function listFinancialCategories(): Promise<FinancialCategoryRecord
   });
 
   return handleResponse<FinancialCategoryRecord[]>(response);
+}
+
+export async function createFinancialTransaction(
+  payload: FinancialTransactionPayload,
+): Promise<FinancialTransactionRecord> {
+  const response = await fetch(`${API_BASE}/crm/financial/transactions`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  return handleResponse<FinancialTransactionRecord>(response);
+}
+
+export async function updateFinancialTransaction(
+  id: number,
+  payload: Partial<FinancialTransactionPayload>,
+): Promise<FinancialTransactionRecord> {
+  const response = await fetch(`${API_BASE}/crm/financial/transactions/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  return handleResponse<FinancialTransactionRecord>(response);
+}
+
+export async function createFinancialCategory(
+  payload: FinancialCategoryPayload,
+): Promise<FinancialCategoryRecord> {
+  const response = await fetch(`${API_BASE}/crm/financial/categories`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  return handleResponse<FinancialCategoryRecord>(response);
+}
+
+export async function updateFinancialCategory(
+  id: number,
+  payload: Partial<FinancialCategoryPayload>,
+): Promise<FinancialCategoryRecord> {
+  const response = await fetch(`${API_BASE}/crm/financial/categories/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  return handleResponse<FinancialCategoryRecord>(response);
 }
 
 export async function deleteFinancialTransaction(

@@ -62,6 +62,16 @@ export async function listLeads(): Promise<LeadRecord[]> {
   return handleResponse<LeadRecord[]>(response);
 }
 
+export async function createLead(payload: Required<Pick<LeadPayload, 'name'>> & LeadPayload): Promise<LeadRecord> {
+  const response = await fetch(`${API_BASE}/crm/leads`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  return handleResponse<LeadRecord>(response);
+}
+
 export async function updateLead(id: number, payload: LeadPayload): Promise<LeadRecord> {
   const response = await fetch(`${API_BASE}/crm/leads/${id}`, {
     method: 'PUT',
