@@ -16,6 +16,7 @@ function Dashboard() {
   const { showToast } = useToast();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [overviewRange, setOverviewRange] = useState<'3' | '6' | 'all'>('6');
 
   useEffect(() => {
     const carregarDashboard = async () => {
@@ -37,10 +38,21 @@ function Dashboard() {
     void carregarDashboard();
   }, [showToast]);
 
-  const monthlyOverview = dashboard?.sales.monthly_overview ?? [];
-  const monthlyLabels = monthlyOverview.map((item) => `${item.label}: ${formatCurrency(item.value)}`);
+  const visibleMonthlyOverview = useMemo(() => {
+    const monthlyOverview = dashboard?.sales.monthly_overview ?? [];
+
+    if (overviewRange === 'all') {
+      return monthlyOverview;
+    }
+
+    return monthlyOverview.slice(-Number(overviewRange));
+  }, [dashboard?.sales.monthly_overview, overviewRange]);
+  const monthlyLabels = visibleMonthlyOverview.map((item) => `${item.label}: ${formatCurrency(item.value)}`);
   const teamPerformance = dashboard?.team_performance ?? [];
   const recentActivities = useMemo(() => dashboard?.recent_activities ?? [], [dashboard]);
+  const paidRevenue = dashboard?.financial.revenue ?? 0;
+  const paidExpenses = dashboard?.financial.expenses ?? 0;
+  const balance = dashboard?.financial.balance ?? 0;
 
   if (isLoading) {
     return (
@@ -56,6 +68,24 @@ function Dashboard() {
         <div className="flex justify-between z-10">
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Visão Geral Mensal</p>
+            <div className="mt-4 inline-flex rounded-full border border-white/10 bg-[#1a1e23] p-1">
+              {[
+                { value: '3', label: '3 meses' },
+                { value: '6', label: '6 meses' },
+                { value: 'all', label: 'Tudo' },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setOverviewRange(option.value as '3' | '6' | 'all')}
+                  className={`rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.2em] transition ${
+                    overviewRange === option.value ? 'bg-cyan-400 text-slate-950' : 'text-slate-400'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
             <div className="flex flex-wrap gap-4 mt-4 text-xs text-gray-500">
               {monthlyLabels.length > 0 ? (
                 monthlyLabels.map((item) => <span key={item}>{item}</span>)
@@ -83,6 +113,33 @@ function Dashboard() {
             <path d="M0,150 Q100,120 200,180 T400,100 T600,60 T800,120 T1000,40" fill="none" stroke="#e0e0e0" strokeWidth="2" strokeDasharray="5,5" />
           </svg>
         </div>
+      </div>
+
+      <div className="lg:col-span-12 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <PortfolioStatCard
+          label="Receita paga"
+          value={formatCurrency(paidRevenue)}
+          helper="Tudo que ja entrou no caixa"
+          tone="emerald"
+        />
+        <PortfolioStatCard
+          label="Despesa paga"
+          value={formatCurrency(paidExpenses)}
+          helper="Tudo que ja saiu do caixa"
+          tone="red"
+        />
+        <PortfolioStatCard
+          label="Saldo atual"
+          value={formatCurrency(balance)}
+          helper="Resultado liquido do periodo"
+          tone={balance >= 0 ? 'cyan' : 'orange'}
+        />
+        <PortfolioStatCard
+          label="Usuarios ativos"
+          value={String(dashboard?.users.active ?? 0)}
+          helper="Pessoas usando o sistema"
+          tone="slate"
+        />
       </div>
 
       <div className="lg:col-span-4 flex flex-col gap-6">
@@ -176,3 +233,31 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
+function PortfolioStatCard({
+  label,
+  value,
+  helper,
+  tone,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  tone: 'emerald' | 'red' | 'cyan' | 'orange' | 'slate';
+}) {
+  const toneClasses: Record<typeof tone, string> = {
+    emerald: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-300',
+    red: 'border-red-500/20 bg-red-500/5 text-red-300',
+    cyan: 'border-cyan-500/20 bg-cyan-500/5 text-cyan-300',
+    orange: 'border-orange-500/20 bg-orange-500/5 text-orange-300',
+    slate: 'border-white/10 bg-[#1a1e23] text-slate-200',
+  };
+
+  return (
+    <div className={`rounded-[28px] border p-5 shadow-xl ${toneClasses[tone]}`}>
+      <p className="text-[10px] uppercase tracking-[0.25em]">{label}</p>
+      <p className="mt-3 text-3xl font-black">{value}</p>
+      <p className="mt-2 text-sm text-slate-400">{helper}</p>
+    </div>
+  );
+}

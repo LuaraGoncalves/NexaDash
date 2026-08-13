@@ -133,6 +133,7 @@ function Users() {
     data_inicio: '',
     data_fim: '',
   });
+  const [auditActionSearch, setAuditActionSearch] = useState('');
 
   useEffect(() => {
     const carregarUsuarios = async () => {
@@ -182,6 +183,10 @@ function Users() {
       return target.includes(searchTerm.toLowerCase());
     });
   }, [searchTerm, users]);
+
+  const visibleLogs = useMemo(() => {
+    return logs.filter((log) => log.acao.toLowerCase().includes(auditActionSearch.toLowerCase()));
+  }, [auditActionSearch, logs]);
 
   const formatLogDate = (date: string) =>
     new Intl.DateTimeFormat('pt-BR', {
@@ -464,6 +469,14 @@ function Users() {
                 />
 
                 <input
+                  type="text"
+                  value={auditActionSearch}
+                  onChange={(event) => setAuditActionSearch(event.target.value)}
+                  placeholder="Buscar por ação"
+                  className="bg-[#1a1e23] border border-gray-700 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-[#00e6e6]"
+                />
+
+                <input
                   type="date"
                   value={auditFilters.data_inicio}
                   onChange={(event) => setAuditFilters((prev) => ({ ...prev, data_inicio: event.target.value }))}
@@ -477,6 +490,27 @@ function Users() {
                   className="bg-[#1a1e23] border border-gray-700 text-white text-sm rounded-lg px-4 py-2.5 outline-none focus:border-[#00e6e6]"
                 />
               </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-cyan-300">
+                  {visibleLogs.length} logs visíveis
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuditFilters({
+                      modulo: '',
+                      usuario: '',
+                      data_inicio: '',
+                      data_fim: '',
+                    });
+                    setAuditActionSearch('');
+                  }}
+                  className="rounded-full border border-white/10 px-3 py-1 text-[11px] font-bold text-slate-300 hover:border-white/20"
+                >
+                  Limpar filtros
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-auto relative">
@@ -486,11 +520,11 @@ function Users() {
                    <div className="rounded-xl bg-[#1a1e23] px-4 py-8 text-center text-gray-500">
                      Carregando logs...
                    </div>
-                 ) : logs.length === 0 ? (
+                 ) : visibleLogs.length === 0 ? (
                    <div className="rounded-xl bg-[#1a1e23] px-4 py-8 text-center text-gray-500">
                      Nenhum log encontrado.
                    </div>
-                 ) : logs.map((log) => (
+                 ) : visibleLogs.map((log) => (
                     <div key={log.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#23272d] bg-[#1a1e23] text-gray-500 group-[.is-active]:text-[#ff8c00] shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -501,9 +535,12 @@ function Users() {
                           <span className="text-xs text-gray-500 font-mono">{formatLogDate(log.data_hora)}</span>
                         </div>
                         <p className="text-sm text-gray-300 leading-relaxed">{log.acao}</p>
-                        <div className="mt-3">
+                        <div className="mt-3 flex flex-wrap gap-2">
                           <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${moduleBadgeClasses[log.modulo] ?? 'bg-gray-500/10 text-gray-300 border-gray-500/30'}`}>
                             {moduleLabels[log.modulo] ?? log.modulo}
+                          </span>
+                          <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] ${actionBadgeClass(log.acao)}`}>
+                            {actionBadgeLabel(log.acao)}
                           </span>
                         </div>
                       </div>
@@ -679,3 +716,31 @@ function Users() {
 }
 
 export default Users;
+
+function actionBadgeLabel(action: string) {
+  const normalized = action.toLowerCase();
+
+  if (normalized.includes('login') && normalized.includes('inv')) return 'Acesso negado';
+  if (normalized.includes('login')) return 'Login';
+  if (normalized.includes('criad')) return 'Criação';
+  if (normalized.includes('atualiz') || normalized.includes('editad')) return 'Edição';
+  if (normalized.includes('cancelad')) return 'Cancelamento';
+  if (normalized.includes('inativ')) return 'Inativação';
+  if (normalized.includes('exclu')) return 'Exclusão';
+
+  return 'Ação';
+}
+
+function actionBadgeClass(action: string) {
+  const normalized = action.toLowerCase();
+
+  if (normalized.includes('login') && normalized.includes('inv')) return 'bg-red-500/10 text-red-300 border-red-500/30';
+  if (normalized.includes('login')) return 'bg-sky-500/10 text-sky-300 border-sky-500/30';
+  if (normalized.includes('criad')) return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
+  if (normalized.includes('atualiz') || normalized.includes('editad')) return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30';
+  if (normalized.includes('cancelad')) return 'bg-amber-500/10 text-amber-300 border-amber-500/30';
+  if (normalized.includes('inativ')) return 'bg-orange-500/10 text-orange-300 border-orange-500/30';
+  if (normalized.includes('exclu')) return 'bg-red-500/10 text-red-300 border-red-500/30';
+
+  return 'bg-gray-500/10 text-gray-300 border-gray-500/30';
+}
