@@ -1,3 +1,12 @@
+export type SaleStatus = 'Aberta' | 'Concluída' | 'Cancelada';
+export type SalePaymentMethod =
+  | 'Dinheiro'
+  | 'Cartão de Crédito'
+  | 'Cartão de Débito'
+  | 'PIX'
+  | 'Boleto'
+  | 'Múltiplo';
+
 export type SaleItemPayload = {
   id_produto: number;
   nome: string;
@@ -12,7 +21,7 @@ export type SalePayload = {
   data_hora: string;
   total: number;
   forma_pagamento: string;
-  status?: 'Aberta' | 'Concluída' | 'Cancelada';
+  status?: SaleStatus;
   itens: SaleItemPayload[];
 };
 
@@ -70,6 +79,16 @@ export async function updateSaleStatus(id: number, status: SaleRecord['status'])
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify({ status }),
+  });
+
+  return handleResponse<SaleRecord>(response);
+}
+
+export async function updateSale(id: number, payload: SalePayload): Promise<SaleRecord> {
+  const response = await fetch(`${API_BASE}/crm/sales/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
   });
 
   return handleResponse<SaleRecord>(response);

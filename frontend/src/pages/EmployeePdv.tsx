@@ -36,12 +36,8 @@ type VendaRecente = {
   data_hora: string;
 };
 
-const clienteBalcao: Cliente = {
-  id: 0,
-  nome: 'Consumidor Final',
-};
-
 const formasPagamento: FormaPagamento[] = ['PIX', 'Cartão de Crédito', 'Cartão de Débito', 'Dinheiro'];
+const walkInCustomerLabel = 'Cliente avulso';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', {
@@ -57,7 +53,8 @@ export default function EmployeePdv() {
   const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('PIX');
   const [ultimasVendas, setUltimasVendas] = useState<VendaRecente[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([clienteBalcao]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [walkInCustomerName, setWalkInCustomerName] = useState(walkInCustomerLabel);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -88,10 +85,7 @@ export default function EmployeePdv() {
             data_hora: sale.data_hora,
           })),
         );
-        setClientes([
-          clienteBalcao,
-          ...customersResponse.filter((customer) => customer.status === 'ativo').map(mapCustomerToClient),
-        ]);
+        setClientes(customersResponse.filter((customer) => customer.status === 'ativo').map(mapCustomerToClient));
         setProdutos(
           productsResponse
             .filter((product) => product.status === 'ativo')
@@ -114,7 +108,8 @@ export default function EmployeePdv() {
 
   const totalItens = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
   const totalCarrinho = carrinho.reduce((acc, item) => acc + item.subtotal, 0);
-  const clienteSelecionado = clientes.find((cliente) => cliente.id === selectedClienteId) ?? clienteBalcao;
+  const clienteSelecionado = clientes.find((cliente) => cliente.id === selectedClienteId);
+  const nomeClienteSelecionado = clienteSelecionado?.nome ?? (walkInCustomerName.trim() || walkInCustomerLabel);
 
   const produtosFiltrados = useMemo(
     () =>
@@ -182,6 +177,7 @@ export default function EmployeePdv() {
   const limparCarrinho = () => {
     setCarrinho([]);
     setSelectedClienteId(0);
+    setWalkInCustomerName(walkInCustomerLabel);
     setFormaPagamento('PIX');
   };
 
@@ -200,7 +196,7 @@ export default function EmployeePdv() {
     try {
       const sale = await createSale({
         id_cliente: selectedClienteId || undefined,
-        cliente_nome: clienteSelecionado.nome,
+        cliente_nome: nomeClienteSelecionado,
         data_hora: new Date().toISOString().replace('T', ' ').slice(0, 16),
         total: totalCarrinho,
         forma_pagamento: formaPagamento,
@@ -416,6 +412,25 @@ export default function EmployeePdv() {
                       <p className="mt-1 text-sm text-slate-500">{cliente.telefone ?? cliente.email ?? 'Sem contato cadastrado'}</p>
                     </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setSelectedClienteId(0)}
+                  className={`w-full rounded-[1.5rem] border-2 px-4 py-4 text-left transition ${
+                    selectedClienteId === 0 ? 'border-[#f59e0b] bg-[#fff7ed]' : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                  }`}
+                >
+                  <p className="text-lg font-black">Venda sem cadastro</p>
+                  <p className="mt-1 text-sm text-slate-500">Usar cliente avulso no caixa</p>
+                </button>
+                {selectedClienteId === 0 && (
+                  <input
+                    type="text"
+                    value={walkInCustomerName}
+                    onChange={(event) => setWalkInCustomerName(event.target.value)}
+                    placeholder="Nome opcional para venda avulsa"
+                    className="w-full rounded-[1.25rem] border-2 border-slate-200 bg-slate-50 px-4 py-4 text-base outline-none focus:border-[#06b6d4]"
+                  />
+                )}
               </div>
             </div>
 
@@ -441,7 +456,7 @@ export default function EmployeePdv() {
                 <p className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Resumo</p>
                 <div className="mt-4 flex items-center justify-between text-sm text-slate-300">
                   <span>Cliente</span>
-                  <span className="font-bold text-white">{clienteSelecionado.nome}</span>
+                  <span className="font-bold text-white">{nomeClienteSelecionado}</span>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-sm text-slate-300">
                   <span>Itens</span>
