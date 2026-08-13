@@ -1,14 +1,17 @@
-import { Routes, Route, Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
-import Vendas from "./pages/Vendas";
-import Users from "./pages/Users";
-import Products from "./pages/Products";
-import Leads from "./pages/Leads";
-import Financeiro from "./pages/Financeiro";
-import Customers from "./pages/Customers";
-import ContextHelp from "./components/ContextHelp";
-import { useAuth } from "./context/useAuth";
-import { getDefaultRouteForRole } from "./services/authApi";
+import { lazy, Suspense } from 'react';
+import { Routes, Route, Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import ContextHelp from './components/ContextHelp';
+import RouteScreen from './components/RouteScreen';
+import { useAuth } from './context/useAuth';
+import { getDefaultRouteForRole } from './services/authApi';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Vendas = lazy(() => import('./pages/Vendas'));
+const Users = lazy(() => import('./pages/Users'));
+const Products = lazy(() => import('./pages/Products'));
+const Leads = lazy(() => import('./pages/Leads'));
+const Financeiro = lazy(() => import('./pages/Financeiro'));
+const Customers = lazy(() => import('./pages/Customers'));
 
 function App() {
   const { user, logout } = useAuth();
@@ -103,17 +106,19 @@ function App() {
           </div>
         </header>
 
-        <Routes>
-          <Route path="/" element={<Navigate to={homeRoute} replace />} />
-          <Route path="/crm" element={canViewDashboard ? <Dashboard /> : <Navigate to={homeRoute} replace />} />
-          <Route path="/crm/vendas" element={canUseSales ? <Vendas /> : <Navigate to={homeRoute} replace />} />
-          <Route path="/crm/products" element={canManageCatalog ? <Products /> : <Navigate to={homeRoute} replace />} />
-          <Route path="/crm/users" element={canManageUsers ? <Users /> : <Navigate to={homeRoute} replace />} />
-          <Route path="/crm/leads" element={canViewLeads ? <Leads /> : <Navigate to={homeRoute} replace />} />
-          <Route path="/crm/financeiro" element={canViewFinance ? <Financeiro /> : <Navigate to={homeRoute} replace />} />
-          <Route path="/crm/clientes" element={canViewCustomers ? <Customers /> : <Navigate to={homeRoute} replace />} />
-          <Route path="*" element={<Navigate to={homeRoute} replace />} />
-         </Routes>
+        <Suspense fallback={<RouteScreen />}>
+          <Routes>
+            <Route path="/" element={<Navigate to={homeRoute} replace />} />
+            <Route path="/crm" element={canViewDashboard ? <Dashboard /> : <Navigate to={homeRoute} replace />} />
+            <Route path="/crm/vendas" element={canUseSales ? <Vendas /> : <Navigate to={homeRoute} replace />} />
+            <Route path="/crm/products" element={canManageCatalog ? <Products /> : <Navigate to={homeRoute} replace />} />
+            <Route path="/crm/users" element={canManageUsers ? <Users /> : <Navigate to={homeRoute} replace />} />
+            <Route path="/crm/leads" element={canViewLeads ? <Leads /> : <Navigate to={homeRoute} replace />} />
+            <Route path="/crm/financeiro" element={canViewFinance ? <Financeiro /> : <Navigate to={homeRoute} replace />} />
+            <Route path="/crm/clientes" element={canViewCustomers ? <Customers /> : <Navigate to={homeRoute} replace />} />
+            <Route path="*" element={<Navigate to={homeRoute} replace />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );

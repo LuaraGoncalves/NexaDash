@@ -1,42 +1,49 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import AdminShell from './App';
+import RouteScreen from './components/RouteScreen';
 import { useAuth } from './context/useAuth';
-import Login from './pages/Login';
-import EmployeeShell from './layouts/EmployeeShell';
 import { getDefaultRouteForRole } from './services/authApi';
+
+const AdminShell = lazy(() => import('./App'));
+const Login = lazy(() => import('./pages/Login'));
+const EmployeeShell = lazy(() => import('./layouts/EmployeeShell'));
+const ManagerShell = lazy(() => import('./layouts/ManagerShell'));
+const FinanceShell = lazy(() => import('./layouts/FinanceShell'));
 
 export default function AppRouter() {
   const { user, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0f141a] text-white flex items-center justify-center">
-        Carregando...
-      </div>
-    );
+    return <RouteScreen />;
   }
 
   return (
-    <Routes location={location}>
-      <Route
-        path="/login"
-        element={user ? <Navigate to={getDefaultRouteForRole(user.role)} replace /> : <Login />}
-      />
-      <Route
-        path="*"
-        element={
-          user ? (
-            user.role === 'employee' ? (
-              <EmployeeShell />
+    <Suspense fallback={<RouteScreen />}>
+      <Routes location={location}>
+        <Route
+          path="/login"
+          element={user ? <Navigate to={getDefaultRouteForRole(user.role)} replace /> : <Login />}
+        />
+        <Route
+          path="*"
+          element={
+            user ? (
+              user.role === 'employee' ? (
+                <EmployeeShell />
+              ) : user.role === 'manager' ? (
+                <ManagerShell />
+              ) : user.role === 'finance' ? (
+                <FinanceShell />
+              ) : (
+                <AdminShell />
+              )
             ) : (
-              <AdminShell />
+              <Navigate to="/login" replace />
             )
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      />
-    </Routes>
+          }
+        />
+      </Routes>
+    </Suspense>
   );
 }
