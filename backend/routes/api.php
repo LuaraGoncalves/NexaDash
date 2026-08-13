@@ -26,27 +26,26 @@ Route::middleware('api.auth')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     Route::prefix('crm')->group(function () {
-        Route::middleware('role:admin,employee')->group(function () {
+        Route::middleware('role:admin,manager,finance')->group(function () {
+            Route::get('/dashboard', [DashboardController::class, 'index']);
+        });
+
+        Route::middleware('role:admin,manager,employee')->group(function () {
+            Route::get('/products', [ProductController::class, 'index']);
+
             Route::get('/leads', [LeadController::class, 'index']);
             Route::post('/leads', [LeadController::class, 'store']);
             Route::put('/leads/{id}', [LeadController::class, 'update']);
-            Route::delete('/leads/{id}', [LeadController::class, 'destroy']);
             Route::get('/leads/{id}/messages', [LeadMessageController::class, 'index']);
             Route::post('/leads/{id}/messages', [LeadMessageController::class, 'store']);
 
             Route::get('/sales', [SaleController::class, 'index']);
             Route::post('/sales', [SaleController::class, 'store']);
-            Route::put('/sales/{id}', [SaleController::class, 'update']);
-            Route::delete('/sales/{id}', [SaleController::class, 'destroy']);
             Route::get('/customers', [CustomerController::class, 'index']);
             Route::post('/customers', [CustomerController::class, 'store']);
-            Route::put('/customers/{id}', [CustomerController::class, 'update']);
         });
 
-        Route::middleware('role:admin')->group(function () {
-            Route::get('/dashboard', [DashboardController::class, 'index']);
-
-            Route::get('/products', [ProductController::class, 'index']);
+        Route::middleware('role:admin,manager')->group(function () {
             Route::post('/products', [ProductController::class, 'store']);
             Route::put('/products/{id}', [ProductController::class, 'update']);
             Route::delete('/products/{id}', [ProductController::class, 'destroy']);
@@ -71,6 +70,13 @@ Route::middleware('api.auth')->group(function () {
             Route::put('/inventory-movements/{id}', [InventoryMovementController::class, 'update']);
             Route::delete('/inventory-movements/{id}', [InventoryMovementController::class, 'destroy']);
 
+            Route::delete('/leads/{id}', [LeadController::class, 'destroy']);
+            Route::put('/sales/{id}', [SaleController::class, 'update']);
+            Route::delete('/sales/{id}', [SaleController::class, 'destroy']);
+            Route::put('/customers/{id}', [CustomerController::class, 'update']);
+        });
+
+        Route::middleware('role:admin,finance')->group(function () {
             Route::get('/financial/categories', [FinancialCategoryController::class, 'index']);
             Route::post('/financial/categories', [FinancialCategoryController::class, 'store']);
             Route::put('/financial/categories/{id}', [FinancialCategoryController::class, 'update']);
@@ -80,7 +86,9 @@ Route::middleware('api.auth')->group(function () {
             Route::post('/financial/transactions', [FinancialTransactionController::class, 'store']);
             Route::put('/financial/transactions/{id}', [FinancialTransactionController::class, 'update']);
             Route::delete('/financial/transactions/{id}', [FinancialTransactionController::class, 'destroy']);
+        });
 
+        Route::middleware('role:admin')->group(function () {
             Route::get('/users', [UserManagementController::class, 'index']);
             Route::post('/users', [UserManagementController::class, 'store']);
             Route::put('/users/{id}', [UserManagementController::class, 'update']);

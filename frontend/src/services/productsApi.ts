@@ -79,6 +79,11 @@ export type SupplierPayload = {
   status?: ProductStatus;
 };
 
+export type UnitPayload = {
+  sigla: string;
+  nome: string;
+};
+
 export type InventoryMovementPayload = {
   id_produto: number;
   tipo: InventoryMovementType;
@@ -207,6 +212,26 @@ export async function listUnits(): Promise<UnitRecord[]> {
   });
 
   return handleResponse<UnitRecord[]>(response);
+}
+
+export async function createUnit(payload: UnitPayload): Promise<UnitRecord> {
+  const response = await fetch(`${API_BASE}/crm/units`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  return handleResponse<UnitRecord>(response);
+}
+
+export async function updateUnit(id: number, payload: Partial<UnitPayload>): Promise<UnitRecord> {
+  const response = await fetch(`${API_BASE}/crm/units/${id}`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  return handleResponse<UnitRecord>(response);
 }
 
 export async function listInventoryMovements(): Promise<InventoryMovementRecord[]> {

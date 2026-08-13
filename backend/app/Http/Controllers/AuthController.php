@@ -33,6 +33,20 @@ class AuthController extends Controller
             ], 401);
         }
 
+        if (($user->status ?? 'ativo') !== 'ativo') {
+            AuditLog::record(
+                $user->id,
+                $user->name,
+                'auth',
+                "Tentativa de login em conta inativa: {$user->email}",
+                ['email' => $user->email]
+            );
+
+            return response()->json([
+                'message' => 'Esta conta está inativa e não pode entrar no sistema.',
+            ], 403);
+        }
+
         $token = Str::random(64);
         $user->forceFill([
             'api_token' => $token,

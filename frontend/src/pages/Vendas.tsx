@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import ContextHelp from '../components/ContextHelp';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../context/useToast';
 import { createCustomer, listCustomers, type CustomerRecord } from '../services/customersApi';
 import { listProducts, type ProductRecord } from '../services/productsApi';
-import { createSale, deleteSale, listSales } from '../services/salesApi';
+import { createSale, deleteSale, listSales, updateSaleStatus } from '../services/salesApi';
 
 type Cliente = {
   id: number;
@@ -269,6 +269,28 @@ export default function Vendas() {
       });
     } finally {
       setIsDeletingSale(false);
+    }
+  };
+
+  const handleUpdateSaleStatus = async (sale: Venda, status: StatusVenda) => {
+    try {
+      const response = await updateSaleStatus(sale.id, status);
+      const vendaAtualizada = mapSaleRecord(response);
+
+      setVendas((prev) => prev.map((item) => (item.id === vendaAtualizada.id ? vendaAtualizada : item)));
+      setVendaDetalhesModal(vendaAtualizada);
+      showToast({
+        tone: 'success',
+        title: 'Status da venda atualizado',
+        description: `${vendaAtualizada.protocolo} agora esta como ${vendaAtualizada.status}.`,
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar status da venda:', error);
+      showToast({
+        tone: 'error',
+        title: 'Nao consegui atualizar a venda',
+        description: 'A API nao confirmou essa mudanca agora.',
+      });
     }
   };
 
@@ -700,7 +722,25 @@ export default function Vendas() {
             </div>
 
             <div className="px-6 py-4 border-t border-gray-700 bg-[#1a1e23] flex justify-between items-center rounded-b-2xl">
-              <div>
+              <div className="flex flex-wrap gap-3">
+                {vendaDetalhesModal.status !== 'Aberta' && (
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateSaleStatus(vendaDetalhesModal, 'Aberta')}
+                    className="text-yellow-300 hover:text-yellow-200 text-sm font-bold"
+                  >
+                    Marcar aberta
+                  </button>
+                )}
+                {vendaDetalhesModal.status !== 'Concluída' && (
+                  <button
+                    type="button"
+                    onClick={() => void handleUpdateSaleStatus(vendaDetalhesModal, 'Concluída')}
+                    className="text-emerald-300 hover:text-emerald-200 text-sm font-bold"
+                  >
+                    Marcar concluida
+                  </button>
+                )}
                 {vendaDetalhesModal.status !== 'Cancelada' && (
                   <button onClick={() => setSaleToDelete(vendaDetalhesModal)} className="text-red-500 hover:text-red-400 text-sm font-bold underline transition-colors">
                     Cancelar Venda

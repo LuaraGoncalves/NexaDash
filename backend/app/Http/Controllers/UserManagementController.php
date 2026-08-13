@@ -164,7 +164,7 @@ class UserManagementController extends Controller
             ],
             default => [
                 'ver_leads' => true,
-                'editar_leads' => false,
+                'editar_leads' => true,
                 'excluir_leads' => false,
                 'ver_financeiro' => false,
                 'criar_usuario' => false,

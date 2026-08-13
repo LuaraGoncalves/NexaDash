@@ -1,8 +1,9 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AdminShell from './App';
+import { useAuth } from './context/useAuth';
 import Login from './pages/Login';
 import EmployeeShell from './layouts/EmployeeShell';
-import { useAuth } from './context/AuthContext';
+import { getDefaultRouteForRole } from './services/authApi';
 
 export default function AppRouter() {
   const { user, loading } = useAuth();
@@ -20,16 +21,16 @@ export default function AppRouter() {
     <Routes location={location}>
       <Route
         path="/login"
-        element={user ? <Navigate to={user.role === 'admin' ? '/crm' : '/crm/vendas'} replace /> : <Login />}
+        element={user ? <Navigate to={getDefaultRouteForRole(user.role)} replace /> : <Login />}
       />
       <Route
         path="*"
         element={
           user ? (
-            user.role === 'admin' ? (
-              <AdminShell />
-            ) : (
+            user.role === 'employee' ? (
               <EmployeeShell />
+            ) : (
+              <AdminShell />
             )
           ) : (
             <Navigate to="/login" replace />

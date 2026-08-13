@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../context/useToast';
 import { getDashboardData, type DashboardData } from '../services/dashboardApi';
 
 function formatCurrency(value: number) {

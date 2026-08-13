@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import ContextHelp from '../components/ContextHelp';
-import { useToast } from '../context/ToastContext';
+import { useToast } from '../context/useToast';
 import {
   createInventoryMovement,
   createProduct,
   createProductCategory,
   createSupplier,
+  createUnit,
   deleteInventoryMovement,
   deleteProduct,
   deleteProductCategory,
@@ -21,6 +22,7 @@ import {
   updateProduct,
   updateProductCategory,
   updateSupplier,
+  updateUnit,
   type InventoryMovementPayload,
   type InventoryMovementRecord,
   type InventoryMovementType,
@@ -31,6 +33,7 @@ import {
   type ProductStatus,
   type SupplierPayload,
   type SupplierRecord,
+  type UnitPayload,
   type UnitRecord,
 } from '../services/productsApi';
 
@@ -85,6 +88,11 @@ type SupplierFormState = {
   status: ProductStatus;
 };
 
+type UnitFormState = {
+  sigla: string;
+  nome: string;
+};
+
 const emptyProductForm = (): ProductFormState => ({
   sku: '',
   nome: '',
@@ -121,6 +129,11 @@ const emptySupplierForm = (): SupplierFormState => ({
   status: 'ativo',
 });
 
+const emptyUnitForm = (): UnitFormState => ({
+  sigla: '',
+  nome: '',
+});
+
 export default function Products() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'catalogo' | 'movimentacoes' | 'cadastros'>('catalogo');
@@ -141,23 +154,27 @@ export default function Products() {
   const [isMovimentacaoModalOpen, setIsMovimentacaoModalOpen] = useState(false);
   const [isCategoriaModalOpen, setIsCategoriaModalOpen] = useState(false);
   const [isFornecedorModalOpen, setIsFornecedorModalOpen] = useState(false);
+  const [isUnidadeModalOpen, setIsUnidadeModalOpen] = useState(false);
 
   const [editingProduct, setEditingProduct] = useState<Produto | null>(null);
   const [editingMovement, setEditingMovement] = useState<Movimentacao | null>(null);
   const [editingCategory, setEditingCategory] = useState<Categoria | null>(null);
   const [editingSupplier, setEditingSupplier] = useState<Fornecedor | null>(null);
+  const [editingUnit, setEditingUnit] = useState<Unidade | null>(null);
 
   const [productForm, setProductForm] = useState<ProductFormState>(emptyProductForm);
   const [movementForm, setMovementForm] = useState<MovementFormState>(emptyMovementForm);
   const [categoryForm, setCategoryForm] = useState<CategoryFormState>(emptyCategoryForm);
   const [supplierForm, setSupplierForm] = useState<SupplierFormState>(emptySupplierForm);
+  const [unitForm, setUnitForm] = useState<UnitFormState>(emptyUnitForm);
 
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [isSavingMovement, setIsSavingMovement] = useState(false);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
   const [isSavingSupplier, setIsSavingSupplier] = useState(false);
+  const [isSavingUnit, setIsSavingUnit] = useState(false);
 
-  const carregarDados = async (showLoading = false) => {
+  const carregarDados = useCallback(async (showLoading = false) => {
     if (showLoading) {
       setIsLoadingData(true);
     }
@@ -187,11 +204,11 @@ export default function Products() {
     } finally {
       setIsLoadingData(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     void carregarDados(true);
-  }, [showToast]);
+  }, [carregarDados]);
 
   const produtosFiltrados = useMemo(() => {
     return produtos.filter((produto) => {
@@ -322,6 +339,27 @@ export default function Products() {
     setIsFornecedorModalOpen(false);
     setEditingSupplier(null);
     setSupplierForm(emptySupplierForm());
+  };
+
+  const openUnitModal = (unidade?: Unidade) => {
+    if (unidade) {
+      setEditingUnit(unidade);
+      setUnitForm({
+        sigla: unidade.sigla,
+        nome: unidade.nome,
+      });
+    } else {
+      setEditingUnit(null);
+      setUnitForm(emptyUnitForm());
+    }
+
+    setIsUnidadeModalOpen(true);
+  };
+
+  const closeUnitModal = () => {
+    setIsUnidadeModalOpen(false);
+    setEditingUnit(null);
+    setUnitForm(emptyUnitForm());
   };
 
   const handleSaveProduct = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -519,6 +557,51 @@ export default function Products() {
       });
     } finally {
       setIsSavingSupplier(false);
+    }
+  };
+
+  const handleSaveUnit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!unitForm.sigla.trim() || !unitForm.nome.trim()) {
+      showToast({
+        tone: 'info',
+        title: 'Dados obrigatorios da unidade',
+        description: 'Preencha sigla e nome antes de salvar.',
+      });
+      return;
+    }
+
+    setIsSavingUnit(true);
+
+    const payload: UnitPayload = {
+      sigla: unitForm.sigla.trim(),
+      nome: unitForm.nome.trim(),
+    };
+
+    try {
+      if (editingUnit) {
+        await updateUnit(editingUnit.id, payload);
+      } else {
+        await createUnit(payload);
+      }
+
+      await carregarDados();
+      closeUnitModal();
+      showToast({
+        tone: 'success',
+        title: editingUnit ? 'Unidade atualizada' : 'Unidade criada',
+        description: 'A unidade de medida foi salva na API.',
+      });
+    } catch (error) {
+      console.error('Erro ao salvar unidade:', error);
+      showToast({
+        tone: 'error',
+        title: 'Nao consegui salvar a unidade',
+        description: 'A API nao confirmou esse cadastro agora.',
+      });
+    } finally {
+      setIsSavingUnit(false);
     }
   };
 
@@ -1021,7 +1104,13 @@ export default function Products() {
               <div className="bg-[#1a1e23] border border-gray-700 rounded-xl p-6 flex flex-col">
                 <div className="flex justify-between items-center border-b border-gray-700 pb-4 mb-4">
                   <h3 className="text-white font-bold text-lg">Unidades</h3>
-                  <span className="text-xs text-gray-500">Mantidas como cadastro simples</span>
+                  <button
+                    type="button"
+                    onClick={() => openUnitModal()}
+                    className="rounded-full bg-[#00e6e6] px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#1a1e23]"
+                  >
+                    Nova unidade
+                  </button>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-2">
                   {unidades.map((unidade) => (
@@ -1030,13 +1119,18 @@ export default function Products() {
                         <p className="text-white font-semibold text-sm">{unidade.sigla}</p>
                         <p className="text-gray-500 text-xs">{unidade.nome}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setPendingAction({ kind: 'unit', id: unidade.id, label: unidade.sigla })}
-                        className="text-red-400 hover:text-red-300 text-xs font-bold"
-                      >
-                        Excluir
-                      </button>
+                      <div className="flex gap-2">
+                        <button onClick={() => openUnitModal(unidade)} className="text-sky-300 hover:text-sky-200 text-xs font-bold">
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingAction({ kind: 'unit', id: unidade.id, label: unidade.sigla })}
+                          className="text-red-400 hover:text-red-300 text-xs font-bold"
+                        >
+                          Excluir
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1383,6 +1477,48 @@ export default function Products() {
                 </button>
                 <button type="submit" className="px-6 py-2 bg-[#00e6e6] text-[#1a1e23] text-sm font-bold rounded-lg disabled:bg-gray-700 disabled:text-gray-500" disabled={isSavingSupplier}>
                   {isSavingSupplier ? 'Salvando...' : editingSupplier ? 'Salvar fornecedor' : 'Criar fornecedor'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isUnidadeModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-[#23272d] rounded-2xl shadow-2xl border border-gray-700 w-full max-w-lg">
+            <div className="px-6 py-4 border-b border-gray-700 flex justify-between items-center bg-[#1a1e23] rounded-t-2xl">
+              <h3 className="text-lg font-bold text-white">{editingUnit ? 'Editar unidade' : 'Nova unidade'}</h3>
+              <button onClick={closeUnitModal} className="text-gray-400 hover:text-white">
+                x
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUnit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">Sigla *</label>
+                <input
+                  type="text"
+                  value={unitForm.sigla}
+                  onChange={(event) => setUnitForm((prev) => ({ ...prev, sigla: event.target.value.toUpperCase() }))}
+                  className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">Nome *</label>
+                <input
+                  type="text"
+                  value={unitForm.nome}
+                  onChange={(event) => setUnitForm((prev) => ({ ...prev, nome: event.target.value }))}
+                  className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={closeUnitModal} className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white">
+                  Cancelar
+                </button>
+                <button type="submit" className="px-6 py-2 bg-[#00e6e6] text-[#1a1e23] text-sm font-bold rounded-lg disabled:bg-gray-700 disabled:text-gray-500" disabled={isSavingUnit}>
+                  {isSavingUnit ? 'Salvando...' : editingUnit ? 'Salvar unidade' : 'Criar unidade'}
                 </button>
               </div>
             </form>

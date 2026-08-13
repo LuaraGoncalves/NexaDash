@@ -1,22 +1,10 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { login as loginRequest, logout as logoutRequest, me as meRequest, type AuthUser } from '../services/authApi';
-
-type AuthState = {
-  user: AuthUser | null;
-  token: string | null;
-  loading: boolean;
-};
-
-type AuthContextValue = AuthState & {
-  login: (email: string, password: string) => Promise<AuthUser>;
-  logout: () => Promise<void>;
-};
+import { AuthContext, type AuthContextValue } from './auth-context';
 
 const TOKEN_KEY = 'nexadash_token';
 const USER_KEY = 'nexadash_user';
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function readStoredUser(): AuthUser | null {
   const raw = localStorage.getItem(USER_KEY);
@@ -91,14 +79,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de AuthProvider');
-  }
-
-  return context;
 }

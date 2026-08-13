@@ -23,6 +23,14 @@ class ApiTokenAuth
             return response()->json(['message' => 'Token inválido.'], 401);
         }
 
+        if (($user->status ?? 'ativo') !== 'ativo') {
+            $user->forceFill([
+                'api_token' => null,
+            ])->save();
+
+            return response()->json(['message' => 'Sua conta está inativa.'], 403);
+        }
+
         $request->setUserResolver(fn () => $user);
 
         return $next($request);
