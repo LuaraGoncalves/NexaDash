@@ -35,12 +35,14 @@ API local:
 
 - `http://127.0.0.1:8000/api`
 
-## Contas seed
+## Contas locais
 
 - Admin: `admin@nexadash.local` / `password`
 - Gerente: `gerente@nexadash.local` / `password`
 - Financeiro: `financeiro@nexadash.local` / `password`
 - Caixa: `caixa@nexadash.local` / `password`
+
+O seed mantém o banco limpo para uso real: ele cria apenas estas contas e dados-base de referência. Leads, clientes, produtos, vendas, estoque e financeiro começam vazios.
 
 ## Testes
 
@@ -61,4 +63,4 @@ php artisan test
 - `app/Http/Controllers`: regras por modulo
 - `app/Models`: entidades e relacionamentos
 - `database/migrations`: estrutura do banco
-- `database/seeders/DatabaseSeeder.php`: contas e dados iniciais
+- `database/seeders`: contas locais e dados-base de referência
