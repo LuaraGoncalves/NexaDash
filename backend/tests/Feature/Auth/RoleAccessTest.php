@@ -103,7 +103,8 @@ class RoleAccessTest extends TestCase
         User::factory()->create([
             'role' => $role,
             'status' => 'ativo',
-            'api_token' => $token,
+            'api_token' => User::hashApiToken($token),
+            'api_token_expires_at' => now()->addHour(),
             'permissions' => array_merge($this->permissionsForRole($role), $permissionOverrides),
         ]);
 

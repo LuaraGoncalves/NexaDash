@@ -4,6 +4,7 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class AuthenticationTest extends TestCase
@@ -37,6 +38,11 @@ class AuthenticationTest extends TestCase
             ->assertJsonPath('user.role', 'admin');
 
         $token = $loginResponse->json('token');
+        $user->refresh();
+
+        $this->assertNotSame($token, $user->api_token);
+        $this->assertSame(User::hashApiToken($token), $user->api_token);
+        $this->assertNotNull($user->api_token_expires_at);
 
         $this->getJson('/api/auth/me', [
             'Authorization' => "Bearer {$token}",
@@ -69,7 +75,8 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create([
             'role' => 'finance',
             'status' => 'inativo',
-            'api_token' => 'token-inativo',
+            'api_token' => User::hashApiToken('token-inativo'),
+            'api_token_expires_at' => now()->addHour(),
         ]);
 
         $this->getJson('/api/auth/me', [
@@ -83,6 +90,62 @@ class AuthenticationTest extends TestCase
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'api_token' => null,
+            'api_token_expires_at' => null,
+            'api_token_last_used_at' => null,
         ]);
+    }
+
+    public function test_expired_token_is_blocked_and_cleared(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'admin',
+            'status' => 'ativo',
+            'api_token' => User::hashApiToken('token-vencido'),
+            'api_token_expires_at' => now()->subMinute(),
+        ]);
+
+        $this->getJson('/api/auth/me', [
+            'Authorization' => 'Bearer token-vencido',
+        ])
+            ->assertUnauthorized()
+            ->assertJson([
+                'message' => 'Sessão expirada. Entre novamente.',
+            ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'api_token' => null,
+            'api_token_expires_at' => null,
+            'api_token_last_used_at' => null,
+        ]);
+    }
+
+    public function test_login_is_rate_limited_after_invalid_attempts(): void
+    {
+        config()->set('auth.login_max_attempts', 2);
+        config()->set('auth.login_decay_seconds', 60);
+
+        $user = User::factory()->create([
+            'email' => 'limite@nexadash.test',
+            'password' => 'password',
+            'role' => 'admin',
+            'status' => 'ativo',
+        ]);
+        RateLimiter::clear("{$user->email}|127.0.0.1");
+
+        $payload = [
+            'email' => $user->email,
+            'password' => 'senha-errada',
+        ];
+
+        $this->postJson('/api/auth/login', $payload)->assertUnauthorized();
+        $this->postJson('/api/auth/login', $payload)->assertUnauthorized();
+
+        $this->postJson('/api/auth/login', $payload)
+            ->assertStatus(429)
+            ->assertJsonStructure([
+                'message',
+                'retry_after_seconds',
+            ]);
     }
 }

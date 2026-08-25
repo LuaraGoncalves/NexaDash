@@ -252,7 +252,8 @@ class SalesAndLeadMessagesTest extends TestCase
         User::factory()->create([
             'role' => 'employee',
             'status' => 'ativo',
-            'api_token' => $token,
+            'api_token' => User::hashApiToken($token),
+            'api_token_expires_at' => now()->addHour(),
             'permissions' => [
                 'ver_leads' => true,
                 'editar_leads' => true,
@@ -274,7 +275,8 @@ class SalesAndLeadMessagesTest extends TestCase
         User::factory()->create([
             'role' => 'manager',
             'status' => 'ativo',
-            'api_token' => $token,
+            'api_token' => User::hashApiToken($token),
+            'api_token_expires_at' => now()->addHour(),
             'permissions' => [
                 'ver_leads' => true,
                 'editar_leads' => true,

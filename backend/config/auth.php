@@ -112,4 +112,18 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | API Token Security
+    |--------------------------------------------------------------------------
+    |
+    | Estes valores controlam a duração do token usado pela API e a proteção
+    | contra muitas tentativas de login seguidas.
+    |
+    */
+
+    'api_token_lifetime_hours' => env('API_TOKEN_LIFETIME_HOURS', 8),
+    'login_max_attempts' => env('LOGIN_MAX_ATTEMPTS', 5),
+    'login_decay_seconds' => env('LOGIN_DECAY_SECONDS', 300),
+
 ];

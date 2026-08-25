@@ -44,6 +44,13 @@ API local:
 
 O seed mantém o banco limpo para uso real: ele cria apenas estas contas e dados-base de referência. Leads, clientes, produtos, vendas, estoque e financeiro começam vazios.
 
+## Segurança da autenticação
+
+- O login retorna um Bearer Token para o frontend.
+- O banco salva apenas o hash do token, nunca o token puro.
+- O token expira conforme `API_TOKEN_LIFETIME_HOURS`.
+- Tentativas inválidas de login são limitadas por `LOGIN_MAX_ATTEMPTS` e `LOGIN_DECAY_SECONDS`.
+
 ## Testes
 
 Os testes automatizados usam um banco PostgreSQL separado:

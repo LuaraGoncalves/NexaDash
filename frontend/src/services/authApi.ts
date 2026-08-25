@@ -23,6 +23,7 @@ export type AuthUser = {
 
 export type LoginResponse = {
   token: string;
+  token_expires_at?: string | null;
   user: AuthUser;
 };
 
