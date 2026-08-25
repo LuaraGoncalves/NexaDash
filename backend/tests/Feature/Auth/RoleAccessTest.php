@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Lead;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -40,7 +41,62 @@ class RoleAccessTest extends TestCase
         $this->getJson('/api/crm/users', $headers)->assertForbidden();
     }
 
-    private function headersForRole(string $role): array
+    public function test_employee_without_view_leads_permission_cannot_list_leads(): void
+    {
+        $headers = $this->headersForRole('employee', [
+            'ver_leads' => false,
+        ]);
+
+        $this->getJson('/api/crm/leads', $headers)
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Sem permissão para executar esta ação.');
+
+        $this->assertDatabaseHas('audit_logs', [
+            'modulo' => 'seguranca',
+            'acao' => 'Acesso negado por permissão específica: ver_leads',
+        ]);
+    }
+
+    public function test_manager_without_delete_leads_permission_cannot_delete_lead(): void
+    {
+        $lead = Lead::create([
+            'name' => 'Lead Protegido',
+            'status' => Lead::STATUS_NOVO,
+        ]);
+        $headers = $this->headersForRole('manager', [
+            'excluir_leads' => false,
+        ]);
+
+        $this->deleteJson("/api/crm/leads/{$lead->id}", [], $headers)
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Sem permissão para executar esta ação.');
+
+        $this->assertDatabaseHas('leads', [
+            'id' => $lead->id,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'modulo' => 'seguranca',
+            'acao' => 'Acesso negado por permissão específica: excluir_leads',
+        ]);
+    }
+
+    public function test_finance_without_financial_permission_cannot_access_financial_module(): void
+    {
+        $headers = $this->headersForRole('finance', [
+            'ver_financeiro' => false,
+        ]);
+
+        $this->getJson('/api/crm/financial/transactions', $headers)
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Sem permissão para executar esta ação.');
+
+        $this->assertDatabaseHas('audit_logs', [
+            'modulo' => 'seguranca',
+            'acao' => 'Acesso negado por permissão específica: ver_financeiro',
+        ]);
+    }
+
+    private function headersForRole(string $role, array $permissionOverrides = []): array
     {
         $token = Str::random(40);
 
@@ -48,7 +104,7 @@ class RoleAccessTest extends TestCase
             'role' => $role,
             'status' => 'ativo',
             'api_token' => $token,
-            'permissions' => $this->permissionsForRole($role),
+            'permissions' => array_merge($this->permissionsForRole($role), $permissionOverrides),
         ]);
 
         return [

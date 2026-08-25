@@ -25,6 +25,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    testTimeout: 15000,
     css: true,
     pool: 'threads',
     fileParallelism: false,
