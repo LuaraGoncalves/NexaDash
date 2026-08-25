@@ -27,6 +27,7 @@ class UserManagementController extends Controller
             'status' => ['nullable', Rule::in(['ativo', 'inativo'])],
             'setor' => ['nullable', 'string', 'max:255'],
             'permissions' => ['nullable', 'array'],
+            ...$this->permissionValidationRules(),
         ]);
 
         $user = User::create([
@@ -36,7 +37,7 @@ class UserManagementController extends Controller
             'role' => $validated['role'],
             'status' => $validated['status'] ?? 'ativo',
             'setor' => $validated['setor'] ?? 'Geral',
-            'permissions' => $validated['permissions'] ?? $this->defaultPermissionsForRole($validated['role']),
+            'permissions' => $this->normalizePermissions($validated['role'], $validated['permissions'] ?? null),
         ]);
 
         AuditLog::record(
@@ -60,6 +61,7 @@ class UserManagementController extends Controller
             'status' => ['sometimes', 'required', Rule::in(['ativo', 'inativo'])],
             'setor' => ['sometimes', 'nullable', 'string', 'max:255'],
             'permissions' => ['sometimes', 'nullable', 'array'],
+            ...$this->permissionValidationRules(),
         ]);
 
         $user = User::findOrFail($id);
@@ -68,8 +70,11 @@ class UserManagementController extends Controller
             ->reject(fn ($value, $key) => $key === 'password' && $value === null)
             ->all();
 
-        if (isset($payload['role']) && ! array_key_exists('permissions', $payload)) {
-            $payload['permissions'] = $this->defaultPermissionsForRole($payload['role']);
+        if (isset($payload['role']) || array_key_exists('permissions', $payload)) {
+            $payload['permissions'] = $this->normalizePermissions(
+                $payload['role'] ?? $user->role,
+                $payload['permissions'] ?? null
+            );
         }
 
         $user->update($payload);
@@ -170,5 +175,25 @@ class UserManagementController extends Controller
                 'criar_usuario' => false,
             ],
         };
+    }
+
+    private function normalizePermissions(string $role, ?array $permissions = null): array
+    {
+        $defaults = $this->defaultPermissionsForRole($role);
+
+        if ($permissions === null) {
+            return $defaults;
+        }
+
+        return collect($defaults)
+            ->map(fn (bool $default, string $permission) => (bool) ($permissions[$permission] ?? $default))
+            ->all();
+    }
+
+    private function permissionValidationRules(): array
+    {
+        return collect(array_keys($this->defaultPermissionsForRole('employee')))
+            ->mapWithKeys(fn (string $permission) => ["permissions.{$permission}" => ['sometimes', 'boolean']])
+            ->all();
     }
 }
