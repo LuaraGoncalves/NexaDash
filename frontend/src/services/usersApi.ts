@@ -1,3 +1,5 @@
+import { apiRequest } from './apiClient';
+
 export type UserRole = 'admin' | 'manager' | 'employee' | 'finance';
 export type UserStatus = 'ativo' | 'inativo';
 export type PermissionKey =
@@ -49,68 +51,33 @@ export type AuditLogFilters = {
   data_fim?: string;
 };
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api';
-const TOKEN_KEY = 'nexadash_token';
-
-function authHeaders(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
-
-  return token
-    ? {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
-    : {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      };
-}
-
-async function handleResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || 'Erro ao comunicar com a API de usuários');
-  }
-
-  return response.json() as Promise<T>;
-}
-
 export async function listUsers(): Promise<ManagedUser[]> {
-  const response = await fetch(`${API_BASE}/crm/users`, {
-    headers: authHeaders(),
+  return apiRequest<ManagedUser[]>('/crm/users', {
+    errorMessage: 'Erro ao comunicar com a API de usuários',
   });
-
-  return handleResponse<ManagedUser[]>(response);
 }
 
 export async function createManagedUser(payload: ManagedUserPayload): Promise<ManagedUser> {
-  const response = await fetch(`${API_BASE}/crm/users`, {
+  return apiRequest<ManagedUser>('/crm/users', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de usuários',
   });
-
-  return handleResponse<ManagedUser>(response);
 }
 
 export async function updateManagedUser(id: number, payload: Partial<ManagedUserPayload>): Promise<ManagedUser> {
-  const response = await fetch(`${API_BASE}/crm/users/${id}`, {
+  return apiRequest<ManagedUser>(`/crm/users/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de usuários',
   });
-
-  return handleResponse<ManagedUser>(response);
 }
 
 export async function deleteManagedUser(id: number): Promise<{ message: string; user: ManagedUser }> {
-  const response = await fetch(`${API_BASE}/crm/users/${id}`, {
+  return apiRequest<{ message: string; user: ManagedUser }>(`/crm/users/${id}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    errorMessage: 'Erro ao comunicar com a API de usuários',
   });
-
-  return handleResponse<{ message: string; user: ManagedUser }>(response);
 }
 
 export async function listAuditLogs(filters: AuditLogFilters = {}): Promise<AuditLogRecord[]> {
@@ -123,9 +90,7 @@ export async function listAuditLogs(filters: AuditLogFilters = {}): Promise<Audi
   });
 
   const queryString = params.toString();
-  const response = await fetch(`${API_BASE}/crm/audit-logs${queryString ? `?${queryString}` : ''}`, {
-    headers: authHeaders(),
+  return apiRequest<AuditLogRecord[]>(`/crm/audit-logs${queryString ? `?${queryString}` : ''}`, {
+    errorMessage: 'Erro ao comunicar com a API de usuários',
   });
-
-  return handleResponse<AuditLogRecord[]>(response);
 }

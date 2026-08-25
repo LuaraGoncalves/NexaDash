@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { TOKEN_KEY } from '../services/apiClient';
 import { login as loginRequest, logout as logoutRequest, me as meRequest, type AuthUser } from '../services/authApi';
 import { AuthContext, type AuthContextValue } from './auth-context';
 
-const TOKEN_KEY = 'nexadash_token';
 const USER_KEY = 'nexadash_user';
 
 function readStoredUser(): AuthUser | null {

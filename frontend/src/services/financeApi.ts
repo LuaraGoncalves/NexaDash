@@ -1,3 +1,5 @@
+import { apiRequest } from './apiClient';
+
 export type FinancialTransactionType = 'receita' | 'despesa';
 export type FinancialTransactionStatus = 'Pago' | 'Pendente' | 'Cancelado';
 export type FinancialCategoryType = 'receita' | 'despesa' | 'ambos';
@@ -43,115 +45,72 @@ export type FinancialTransactionPayload = {
   observacoes?: string | null;
 };
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api';
-const TOKEN_KEY = 'nexadash_token';
-
-function authHeaders(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
-
-  return token
-    ? {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
-    : {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      };
-}
-
-async function handleResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || 'Erro ao comunicar com a API financeira');
-  }
-
-  return response.json() as Promise<T>;
-}
-
 export async function listFinancialTransactions(): Promise<FinancialTransactionRecord[]> {
-  const response = await fetch(`${API_BASE}/crm/financial/transactions`, {
-    headers: authHeaders(),
+  return apiRequest<FinancialTransactionRecord[]>('/crm/financial/transactions', {
+    errorMessage: 'Erro ao comunicar com a API financeira',
   });
-
-  return handleResponse<FinancialTransactionRecord[]>(response);
 }
 
 export async function listFinancialCategories(): Promise<FinancialCategoryRecord[]> {
-  const response = await fetch(`${API_BASE}/crm/financial/categories`, {
-    headers: authHeaders(),
+  return apiRequest<FinancialCategoryRecord[]>('/crm/financial/categories', {
+    errorMessage: 'Erro ao comunicar com a API financeira',
   });
-
-  return handleResponse<FinancialCategoryRecord[]>(response);
 }
 
 export async function createFinancialTransaction(
   payload: FinancialTransactionPayload,
 ): Promise<FinancialTransactionRecord> {
-  const response = await fetch(`${API_BASE}/crm/financial/transactions`, {
+  return apiRequest<FinancialTransactionRecord>('/crm/financial/transactions', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API financeira',
   });
-
-  return handleResponse<FinancialTransactionRecord>(response);
 }
 
 export async function updateFinancialTransaction(
   id: number,
   payload: Partial<FinancialTransactionPayload>,
 ): Promise<FinancialTransactionRecord> {
-  const response = await fetch(`${API_BASE}/crm/financial/transactions/${id}`, {
+  return apiRequest<FinancialTransactionRecord>(`/crm/financial/transactions/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API financeira',
   });
-
-  return handleResponse<FinancialTransactionRecord>(response);
 }
 
 export async function createFinancialCategory(
   payload: FinancialCategoryPayload,
 ): Promise<FinancialCategoryRecord> {
-  const response = await fetch(`${API_BASE}/crm/financial/categories`, {
+  return apiRequest<FinancialCategoryRecord>('/crm/financial/categories', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API financeira',
   });
-
-  return handleResponse<FinancialCategoryRecord>(response);
 }
 
 export async function updateFinancialCategory(
   id: number,
   payload: Partial<FinancialCategoryPayload>,
 ): Promise<FinancialCategoryRecord> {
-  const response = await fetch(`${API_BASE}/crm/financial/categories/${id}`, {
+  return apiRequest<FinancialCategoryRecord>(`/crm/financial/categories/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API financeira',
   });
-
-  return handleResponse<FinancialCategoryRecord>(response);
 }
 
 export async function deleteFinancialTransaction(
   id: number,
 ): Promise<{ message: string; transaction: FinancialTransactionRecord }> {
-  const response = await fetch(`${API_BASE}/crm/financial/transactions/${id}`, {
+  return apiRequest<{ message: string; transaction: FinancialTransactionRecord }>(`/crm/financial/transactions/${id}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    errorMessage: 'Erro ao comunicar com a API financeira',
   });
-
-  return handleResponse<{ message: string; transaction: FinancialTransactionRecord }>(response);
 }
 
 export async function deleteFinancialCategory(id: number): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE}/crm/financial/categories/${id}`, {
+  return apiRequest<{ message: string }>(`/crm/financial/categories/${id}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    errorMessage: 'Erro ao comunicar com a API financeira',
   });
-
-  return handleResponse<{ message: string }>(response);
 }
