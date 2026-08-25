@@ -43,6 +43,7 @@ O projeto esta organizado como um monorepo simples:
 - PDV simplificado para operacao de caixa
 - Conversa de leads ligada ao backend
 - Auditoria real das acoes principais
+- Autenticacao com token salvo em hash, expiracao e limite de tentativas de login
 - Testes automatizados no backend e frontend
 - Build com code splitting para melhorar carregamento
 
@@ -112,6 +113,15 @@ Frontend:
 cd C:\NexaDash\frontend
 npm test
 ```
+
+## CI/CD
+
+O projeto possui GitHub Actions em `.github/workflows/ci.yml`.
+
+A cada push em `main` ou `finalizacao-projeto`, e a cada pull request para `main`, o GitHub executa:
+
+- Backend: `vendor/bin/pint --test` e `php artisan test`
+- Frontend: `npm run lint`, `npm test` e `npm run build`
 
 ## Checklist de validação
 
