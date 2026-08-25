@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { getDefaultRouteForRole } from '../services/authApi';
 
-const demoAccounts = [
+const localAccounts = [
   { label: 'Admin', email: 'admin@nexadash.local', password: 'password' },
   { label: 'Gerente', email: 'gerente@nexadash.local', password: 'password' },
   { label: 'Financeiro', email: 'financeiro@nexadash.local', password: 'password' },
@@ -42,12 +42,12 @@ export default function Login() {
             <p className="text-xs uppercase tracking-[0.35em] text-cyan-300">NexaDash CRM</p>
             <h1 className="mt-5 text-4xl font-black leading-tight">CRM comercial com PDV e financeiro em um so fluxo</h1>
             <p className="mt-4 max-w-md text-sm leading-7 text-slate-300">
-              Entre com um dos perfis de demonstração para ver como cada cargo enxerga um pedaço diferente do sistema.
+              Entre com um dos perfis locais para testar como cada cargo enxerga uma parte diferente do sistema.
             </p>
           </div>
 
           <div className="grid gap-3">
-            {demoAccounts.map((account) => (
+            {localAccounts.map((account) => (
               <button
                 key={account.label}
                 type="button"
@@ -129,9 +129,9 @@ export default function Login() {
           </form>
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-[#11161c] p-4 text-sm text-slate-400 lg:hidden">
-            <p className="font-semibold text-slate-200 mb-3">Contas de teste</p>
+            <p className="font-semibold text-slate-200 mb-3">Perfis locais</p>
             <div className="grid gap-2">
-              {demoAccounts.map((account) => (
+              {localAccounts.map((account) => (
                 <button
                   key={account.label}
                   type="button"

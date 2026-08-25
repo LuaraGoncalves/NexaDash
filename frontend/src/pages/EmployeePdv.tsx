@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../context/useToast';
 import { createCustomer, listCustomers, type CustomerRecord } from '../services/customersApi';
 import { listProducts, type ProductRecord } from '../services/productsApi';
-import { createSale, listSales } from '../services/salesApi';
+import { createSale, listSales, type SaleRecord } from '../services/salesApi';
 
 type Cliente = {
   id: number;
@@ -16,6 +16,7 @@ type Produto = {
   sku: string;
   nome: string;
   preco: number;
+  quantidade_estoque: number;
 };
 
 type ItemCarrinho = {
@@ -122,6 +123,18 @@ export default function EmployeePdv() {
   );
 
   const adicionarProduto = (produto: Produto) => {
+    const itemExistente = carrinho.find((item) => item.id_produto === produto.id);
+    const quantidadeNoCarrinho = itemExistente?.quantidade ?? 0;
+
+    if (quantidadeNoCarrinho >= produto.quantidade_estoque) {
+      showToast({
+        tone: 'info',
+        title: 'Estoque no limite',
+        description: `Voce ja separou tudo que existe de ${produto.nome}.`,
+      });
+      return;
+    }
+
     setCarrinho((prev) => {
       const itemExistente = prev.find((item) => item.id_produto === produto.id);
 
@@ -151,6 +164,8 @@ export default function EmployeePdv() {
   };
 
   const alterarQuantidade = (idProduto: number, delta: number) => {
+    const produto = produtos.find((item) => item.id === idProduto);
+
     setCarrinho((prev) =>
       prev
         .map((item) => {
@@ -158,7 +173,8 @@ export default function EmployeePdv() {
             return item;
           }
 
-          const novaQuantidade = item.quantidade + delta;
+          const estoqueDisponivel = produto?.quantidade_estoque ?? item.quantidade;
+          const novaQuantidade = Math.min(estoqueDisponivel, item.quantidade + delta);
 
           if (novaQuantidade <= 0) {
             return null;
@@ -214,6 +230,7 @@ export default function EmployeePdv() {
         },
         ...prev,
       ].slice(0, 5));
+      setProdutos((prev) => reconcileEmployeeProductStock(prev, sale));
 
       limparCarrinho();
       showToast({
@@ -319,13 +336,23 @@ export default function EmployeePdv() {
                   <button
                     key={produto.id}
                     onClick={() => adicionarProduto(produto)}
-                    className="rounded-[1.75rem] border-2 border-slate-100 bg-slate-50 p-5 text-left transition hover:-translate-y-0.5 hover:border-[#06b6d4] hover:bg-white"
+                    disabled={produto.quantidade_estoque <= 0}
+                    className="rounded-[1.75rem] border-2 border-slate-100 bg-slate-50 p-5 text-left transition hover:-translate-y-0.5 hover:border-[#06b6d4] hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400">{produto.sku}</p>
-                    <h3 className="mt-3 text-xl font-black leading-tight">{produto.nome}</h3>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.3em] text-slate-400">{produto.sku}</p>
+                        <h3 className="mt-3 text-xl font-black leading-tight">{produto.nome}</h3>
+                      </div>
+                      <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-black text-slate-500">
+                        estoque {produto.quantidade_estoque}
+                      </span>
+                    </div>
                     <div className="mt-5 flex items-end justify-between gap-3">
                       <span className="text-2xl font-black text-[#0f766e]">{formatCurrency(produto.preco)}</span>
-                      <span className="rounded-full bg-[#0f172a] px-4 py-2 text-sm font-black text-white">Adicionar</span>
+                      <span className="rounded-full bg-[#0f172a] px-4 py-2 text-sm font-black text-white">
+                        {produto.quantidade_estoque > 0 ? 'Adicionar' : 'Sem estoque'}
+                      </span>
                     </div>
                   </button>
                 ))}
@@ -614,5 +641,22 @@ function mapProductToEmployeeProduct(product: ProductRecord): Produto {
     sku: product.sku,
     nome: product.nome,
     preco: Number(product.preco_venda),
+    quantidade_estoque: product.quantidade,
   };
+}
+
+function reconcileEmployeeProductStock(products: Produto[], sale: Pick<SaleRecord, 'status' | 'itens'>): Produto[] {
+  if (sale.status !== 'Concluída') {
+    return products;
+  }
+
+  const saleQuantities = sale.itens.reduce((map, item) => {
+    map.set(item.id_produto, (map.get(item.id_produto) ?? 0) + item.quantidade);
+    return map;
+  }, new Map<number, number>());
+
+  return products.map((product) => ({
+    ...product,
+    quantidade_estoque: Math.max(0, product.quantidade_estoque - (saleQuantities.get(product.id) ?? 0)),
+  }));
 }

@@ -142,6 +142,18 @@ export default function Vendas() {
   const qtdVendasConcluidas = vendasFiltradas.filter((venda) => venda.status === 'Concluída').length;
 
   const adicionarAoCarrinho = (produto: ProdutoVenda) => {
+    const itemExistente = carrinho.find((item) => item.id_produto === produto.id);
+    const quantidadeNoCarrinho = itemExistente?.quantidade ?? 0;
+
+    if (quantidadeNoCarrinho >= produto.quantidade_estoque) {
+      showToast({
+        tone: 'info',
+        title: 'Estoque no limite',
+        description: `Voce ja separou tudo que existe de ${produto.nome}.`,
+      });
+      return;
+    }
+
     setCarrinho((prev) => {
       const existe = prev.find((item) => item.id_produto === produto.id);
 
@@ -173,13 +185,16 @@ export default function Vendas() {
   };
 
   const alterarQuantidade = (idProduto: number, delta: number) => {
+    const produto = produtos.find((item) => item.id === idProduto);
+
     setCarrinho((prev) =>
       prev.map((item) => {
         if (item.id_produto !== idProduto) {
           return item;
         }
 
-        const novaQuantidade = Math.max(1, item.quantidade + delta);
+        const estoqueDisponivel = produto?.quantidade_estoque ?? item.quantidade;
+        const novaQuantidade = Math.min(estoqueDisponivel, Math.max(1, item.quantidade + delta));
 
         return {
           ...item,
@@ -219,6 +234,7 @@ export default function Vendas() {
 
       const novaVenda = mapSaleRecord(sale);
       setVendas((prev) => [novaVenda, ...prev]);
+      setProdutos((prev) => reconcileProductStock(prev, null, novaVenda));
       setCarrinho([]);
       setSelectedClienteId(0);
       setWalkInCustomerName(walkInCustomerLabel);
@@ -252,6 +268,7 @@ export default function Vendas() {
       const response = await deleteSale(saleToDelete.id);
       const vendaAtualizada = mapSaleRecord(response.sale);
 
+      setProdutos((prev) => reconcileProductStock(prev, saleToDelete, vendaAtualizada));
       setVendas((prev) => prev.map((sale) => (sale.id === vendaAtualizada.id ? vendaAtualizada : sale)));
       setVendaDetalhesModal((prev) => (prev?.id === vendaAtualizada.id ? vendaAtualizada : prev));
       setSaleToDelete(null);
@@ -277,6 +294,7 @@ export default function Vendas() {
       const response = await updateSaleStatus(sale.id, status);
       const vendaAtualizada = mapSaleRecord(response);
 
+      setProdutos((prev) => reconcileProductStock(prev, sale, vendaAtualizada));
       setVendas((prev) => prev.map((item) => (item.id === vendaAtualizada.id ? vendaAtualizada : item)));
       setVendaDetalhesModal(vendaAtualizada);
       showToast({
@@ -301,6 +319,7 @@ export default function Vendas() {
       const response = await updateSale(saleId, payload);
       const vendaAtualizada = mapSaleRecord(response);
 
+      setProdutos((prev) => reconcileProductStock(prev, saleToEdit, vendaAtualizada));
       setVendas((prev) => prev.map((item) => (item.id === vendaAtualizada.id ? vendaAtualizada : item)));
       setVendaDetalhesModal(vendaAtualizada);
       setSaleToEdit(null);
@@ -381,14 +400,11 @@ export default function Vendas() {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+    <div className="flex flex-col min-h-0 gap-4">
       <div className="mb-6 flex flex-col gap-4 border-b border-gray-700 pb-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <p className="text-[10px] uppercase tracking-[0.35em] text-cyan-300 mb-3">Modo PDV</p>
           <h2 className="text-3xl md:text-4xl font-black text-white mb-2">Ponto de Venda</h2>
-          <p className="text-gray-400 text-sm md:text-base leading-relaxed">
-            Agora o PDV usa produtos e clientes reais da API, com cadastro rapido no fluxo.
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -411,10 +427,9 @@ export default function Vendas() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-hidden relative">
+      <div className="min-h-0">
         {activeTab === 'nova_venda' && (
-          <div className="absolute inset-0 overflow-y-auto pr-1">
-            <div className="flex min-h-full flex-col gap-4">
+          <div className="flex flex-col gap-4">
               <section className="grid grid-cols-1 gap-4 lg:grid-cols-4">
                 <SummaryCard label="Cliente" value={nomeClienteVenda} helper={clienteSelecionado?.telefone ?? clienteSelecionado?.email ?? 'Venda sem cadastro formal'} />
                 <SummaryCard label="Itens" value={String(totalItensCarrinho)} helper="Quantidade total no carrinho" />
@@ -486,7 +501,7 @@ export default function Vendas() {
                   <section className="rounded-[1.75rem] border border-gray-800 bg-[#23272d] p-5 shadow-xl md:p-6">
                     <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500">Cliente</p>
                     <div className="mt-2 flex items-center justify-between gap-3">
-                      <h3 className="text-xl font-black text-white">Quem vai pagar?</h3>
+                      <h3 className="text-lg font-black text-white md:text-xl">Quem vai pagar?</h3>
                       <button
                         type="button"
                         onClick={() => setIsCustomerModalOpen(true)}
@@ -597,7 +612,7 @@ export default function Vendas() {
                       </div>
                       <div className="mt-2 flex items-center justify-between text-sm text-gray-400">
                         <span>Cliente</span>
-                        <span className="truncate pl-4 text-right">{nomeClienteVenda}</span>
+                        <span className="max-w-[13rem] break-words pl-4 text-right">{nomeClienteVenda}</span>
                       </div>
                       <div className="mt-4 border-t border-gray-700 pt-4">
                         <p className="text-xs uppercase tracking-[0.25em] text-gray-500">Total a pagar</p>
@@ -615,12 +630,11 @@ export default function Vendas() {
                   </section>
                 </aside>
               </div>
-            </div>
           </div>
         )}
 
         {activeTab === 'historico' && (
-          <div className="absolute inset-0 flex flex-col bg-[#23272d] rounded-2xl shadow-2xl border border-gray-800 p-6">
+          <div className="flex min-h-[32rem] flex-col rounded-2xl border border-gray-800 bg-[#23272d] p-6 shadow-2xl">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-gray-700 pb-6">
               <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                 <input
@@ -935,6 +949,36 @@ function mapProductToVendaProduto(product: ProductRecord): ProdutoVenda {
     preco_venda: Number(product.preco_venda),
     quantidade_estoque: product.quantidade,
   };
+}
+
+function reconcileProductStock(
+  products: ProdutoVenda[],
+  previousSale?: Pick<Venda, 'status' | 'itens'> | null,
+  nextSale?: Pick<Venda, 'status' | 'itens'> | null,
+): ProdutoVenda[] {
+  const previousQuantities = saleItemMap(previousSale);
+  const nextQuantities = saleItemMap(nextSale);
+
+  return products.map((product) => {
+    const restoredQuantity = previousQuantities.get(product.id) ?? 0;
+    const consumedQuantity = nextQuantities.get(product.id) ?? 0;
+
+    return {
+      ...product,
+      quantidade_estoque: Math.max(0, product.quantidade_estoque + restoredQuantity - consumedQuantity),
+    };
+  });
+}
+
+function saleItemMap(sale?: Pick<Venda, 'status' | 'itens'> | null): Map<number, number> {
+  if (!sale || sale.status !== 'Concluída') {
+    return new Map();
+  }
+
+  return sale.itens.reduce((map, item) => {
+    map.set(item.id_produto, (map.get(item.id_produto) ?? 0) + item.quantidade);
+    return map;
+  }, new Map<number, number>());
 }
 
 function mapSaleRecord(sale: {
