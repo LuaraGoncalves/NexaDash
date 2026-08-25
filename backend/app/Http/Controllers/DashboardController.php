@@ -8,22 +8,40 @@ use App\Models\Lead;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $monthlyRevenue = collect(range(3, 0))
-            ->map(function (int $monthsAgo) {
+        $completedSales = Sale::query()
+            ->where('status', Sale::STATUS_CONCLUIDA)
+            ->get();
+
+        $revenueByMonth = $completedSales
+            ->map(function (Sale $sale) {
+                try {
+                    $date = Carbon::parse($sale->data_hora);
+                } catch (\Throwable) {
+                    $date = $sale->created_at ?? now();
+                }
+
+                return [
+                    'month' => $date->format('Y-m'),
+                    'value' => (float) $sale->total,
+                ];
+            })
+            ->groupBy('month')
+            ->map(fn ($sales) => (float) collect($sales)->sum('value'));
+
+        $monthlyRevenue = collect(range(11, 0))
+            ->map(function (int $monthsAgo) use ($revenueByMonth) {
                 $date = now()->subMonths($monthsAgo);
+                $monthKey = $date->format('Y-m');
 
                 return [
                     'label' => strtoupper($date->translatedFormat('M')),
-                    'value' => (float) Sale::query()
-                        ->where('status', Sale::STATUS_CONCLUIDA)
-                        ->whereYear('created_at', $date->year)
-                        ->whereMonth('created_at', $date->month)
-                        ->sum('total'),
+                    'value' => (float) ($revenueByMonth[$monthKey] ?? 0),
                 ];
             })
             ->values();

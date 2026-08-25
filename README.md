@@ -77,12 +77,14 @@ npm run dev
 - Frontend: `http://127.0.0.1:5173`
 - Backend API: `http://127.0.0.1:8000/api`
 
-## Contas seed
+## Contas locais
 
 - Admin: `admin@nexadash.local` / `password`
 - Gerente: `gerente@nexadash.local` / `password`
 - Financeiro: `financeiro@nexadash.local` / `password`
 - Caixa: `caixa@nexadash.local` / `password`
+
+O seed cria apenas estas contas e dados-base de referência, como categorias e unidades. Leads, clientes, produtos, vendas, movimentações e lançamentos financeiros nascem vazios para evitar dados fictícios misturados ao uso real.
 
 ## Regras de acesso
 
@@ -111,9 +113,9 @@ cd C:\NexaDash\frontend
 npm test
 ```
 
-## Fluxos para demonstracao
+## Checklist de validação
 
-Se quiser validar no navegador e mostrar o projeto em portfolio, estes sao os caminhos mais fortes:
+Para validar no navegador e mostrar o projeto em portfolio, estes sao os caminhos mais fortes:
 
 1. Entrar como `admin` e mostrar dashboard, vendas, clientes, financeiro, usuarios e auditoria.
 2. Entrar como `caixa` e mostrar o fluxo rapido de PDV + leads.
@@ -122,8 +124,9 @@ Se quiser validar no navegador e mostrar o projeto em portfolio, estes sao os ca
 
 ## Estrutura rapida
 
-- [backend/routes/api.php](/C:/NexaDash/backend/routes/api.php): rotas da API
-- [backend/app/Http/Controllers](/C:/NexaDash/backend/app/Http/Controllers): regras do backend
-- [backend/app/Models](/C:/NexaDash/backend/app/Models): entidades
-- [frontend/src/pages](/C:/NexaDash/frontend/src/pages): telas
-- [frontend/src/services](/C:/NexaDash/frontend/src/services): comunicacao com a API
+- [backend/routes/api.php](backend/routes/api.php): rotas da API
+- [backend/app/Http/Controllers](backend/app/Http/Controllers): regras do backend
+- [backend/app/Services](backend/app/Services): regras de negócio compartilhadas
+- [backend/app/Models](backend/app/Models): entidades
+- [frontend/src/pages](frontend/src/pages): telas
+- [frontend/src/services](frontend/src/services): comunicacao com a API
