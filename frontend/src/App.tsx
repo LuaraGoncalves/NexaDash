@@ -24,7 +24,7 @@ function App() {
   const canUseSales = role === 'admin' || role === 'manager';
   const canManageCatalog = role === 'admin' || role === 'manager';
   const canViewCustomers = role === 'admin' || role === 'manager';
-  const canViewLeads = Boolean(permissions.ver_leads);
+  const canViewLeads = role === 'admin' || Boolean(permissions.ver_leads);
   const canViewFinance = role === 'admin' || Boolean(permissions.ver_financeiro);
   const canManageUsers = role === 'admin';
 
@@ -44,81 +44,97 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-[#1c2128] text-gray-300 font-sans overflow-hidden">
-      
-      {/* Sidebar Light */}
-      <aside className="w-[300px] bg-[#f8f9fc] flex flex-col justify-between py-10 shadow-2xl z-20 rounded-r-[40px] relative">
-        <div className="px-8">
-          <Link to={homeRoute} className="flex items-center space-x-3 mb-16 cursor-pointer group">
-            <div className="w-8 h-8 flex items-center justify-center">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-black group-hover:scale-110 transition-transform"><path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13.5H5.5L12 6.5z"/></svg>
+    <div className="nexa-ui flex h-screen flex-col gap-5 overflow-auto bg-[#d8d2c8] p-4 text-[#20242c] lg:flex-row lg:overflow-hidden lg:p-5">
+      <aside className="flex w-full shrink-0 flex-col overflow-hidden rounded-[2rem] border border-[#ded6c9] bg-[#fffdfa] shadow-[0_24px_70px_rgba(56,50,43,0.12)] lg:w-[280px]">
+        <div className="border-b border-[#eee6da] px-6 py-6">
+          <Link to={homeRoute} className="group flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#20242c] text-base font-semibold text-[#f6d957]">
+              N
             </div>
-            <span className="font-semibold text-sm tracking-[0.2em] text-gray-800 uppercase group-hover:text-black transition-colors">Nexa</span>
+            <div>
+              <span className="block text-base font-semibold text-[#20242c]">NexaDash</span>
+              <span className="text-xs text-[#766f66]">CRM comercial</span>
+            </div>
           </Link>
+        </div>
 
-          <div className="mb-10">
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-6 px-2">Menu Principal</p>
-            <div className="space-y-6">
-               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-4 px-2 mt-8">Navegação</p>
-               <nav className="space-y-4">
-                  {navigationItems.map((item, index) => (
-                    <Link key={item.to} to={item.to} className={`relative flex items-center justify-between group cursor-pointer px-2 ${item.active ? '' : 'opacity-50'}`}>
-                      <span className={`text-sm font-bold ${item.active ? 'text-gray-800' : 'text-gray-500'}`}>{index + 1}. {item.label}</span>
-                      {item.to === '/crm/leads' && (
-                        <span className="absolute top-1/2 -translate-y-1/2 left-[88px] flex h-2.5 w-2.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-               </nav>
-            </div>
+        <div className="flex flex-1 flex-col justify-between px-4 py-5">
+          <nav className="space-y-1">
+            {navigationItems.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`flex min-h-11 items-center justify-between rounded-lg px-3 text-sm font-medium transition ${
+                  item.active
+                    ? 'bg-[#20242c] text-[#fffdfa] shadow-[0_12px_30px_rgba(32,36,44,0.16)]'
+                    : 'text-[#766f66] hover:bg-[#eee8de] hover:text-[#20242c]'
+                }`}
+              >
+                <span>{item.label}</span>
+                {item.to === '/crm/leads' && <span className="h-2 w-2 rounded-full bg-[#9f2d2d]" />}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="rounded-3xl border border-[#eee6da] bg-[#f6f1e8] p-4">
+            <p className="text-sm font-medium text-[#20242c]">{user?.name}</p>
+            <p className="mt-1 text-xs text-[#766f66]">{role}</p>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="mt-4 w-full rounded-2xl border border-[#ded6c9] bg-[#fffdfa] px-3 py-2 text-sm font-medium text-[#766f66] transition hover:border-[#c9beaf] hover:text-[#20242c]"
+            >
+              Sair
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Dark Content */}
-      <main className="flex-1 overflow-y-auto bg-gradient-to-br from-[#1a1e23] to-[#262c35] p-10 relative">
-        
-        {/* Top Header */}
-        <header className="flex justify-between items-center mb-8 px-2">
-          <div className="flex items-center space-x-4">
-             <h1 className="text-lg font-bold text-gray-200 tracking-wider">MÉTRICAS DO NEGÓCIO</h1>
-             <span className="text-xs text-gray-500 border border-gray-600 px-2 py-0.5 rounded-full">Atualizado</span>
-             <ContextHelp title="Como usar o painel">
-               <p>Use a barra lateral para entrar apenas nos módulos liberados para o seu cargo.</p>
-               <p>O botão PDV aparece para quem pode vender. Financeiro fica focado no fluxo financeiro.</p>
-             </ContextHelp>
-          </div>
-          <div className="flex items-center space-x-6">
-            {canUseSales && (
-              <Link to="/crm/vendas" className="bg-[#00e6e6] text-[#1a1e23] px-4 py-1.5 rounded-full text-xs font-black transition hover:scale-[1.02]">
-                PDV
-              </Link>
-            )}
-            <div className="flex flex-col items-end">
-              <span className="text-xs text-gray-400">{user?.name}</span>
-              <button onClick={handleLogout} className="text-xs text-[#ff8c00] hover:text-orange-300">
-                Sair
-              </button>
+      <main className="min-h-[70vh] flex-1 overflow-y-auto rounded-[2rem] border border-[#ded6c9] bg-[#f6f1e8] shadow-[0_24px_70px_rgba(56,50,43,0.12)] lg:min-h-0">
+        <header className="sticky top-0 z-20 border-b border-[#e7ded1] bg-[#f6f1e8]/95 px-8 py-5 backdrop-blur">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-xl font-semibold text-[#20242c]">Operação comercial</h1>
+                <p className="mt-1 text-sm text-[#766f66]">Indicadores, vendas, clientes e cadastros em um fluxo só.</p>
+              </div>
+              <ContextHelp title="Como usar o painel">
+                <p>Use a barra lateral para entrar apenas nos módulos liberados para o seu cargo.</p>
+                <p>O botão PDV aparece para quem pode vender. Financeiro fica focado no fluxo financeiro.</p>
+              </ContextHelp>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {canUseSales && (
+                <Link
+                  to="/crm/vendas"
+                  className="rounded-2xl bg-[#20242c] px-4 py-2 text-sm font-semibold text-[#fffdfa] transition hover:bg-[#171a20]"
+                >
+                  Abrir PDV
+                </Link>
+              )}
+              <span className="rounded-2xl border border-[#ded6c9] bg-[#fffdfa] px-3 py-2 text-xs font-medium text-[#766f66]">
+                Atualizado
+              </span>
             </div>
           </div>
         </header>
 
-        <Suspense fallback={<RouteScreen />}>
-          <Routes>
-            <Route path="/" element={<Navigate to={homeRoute} replace />} />
-            <Route path="/crm" element={canViewDashboard ? <Dashboard /> : <Navigate to={homeRoute} replace />} />
-            <Route path="/crm/vendas" element={canUseSales ? <Vendas /> : <Navigate to={homeRoute} replace />} />
-            <Route path="/crm/products" element={canManageCatalog ? <Products /> : <Navigate to={homeRoute} replace />} />
-            <Route path="/crm/users" element={canManageUsers ? <Users /> : <Navigate to={homeRoute} replace />} />
-            <Route path="/crm/leads" element={canViewLeads ? <Leads /> : <Navigate to={homeRoute} replace />} />
-            <Route path="/crm/financeiro" element={canViewFinance ? <Financeiro /> : <Navigate to={homeRoute} replace />} />
-            <Route path="/crm/clientes" element={canViewCustomers ? <Customers /> : <Navigate to={homeRoute} replace />} />
-            <Route path="*" element={<Navigate to={homeRoute} replace />} />
-          </Routes>
-        </Suspense>
+        <div className="px-8 py-6">
+          <Suspense fallback={<RouteScreen />}>
+            <Routes>
+              <Route path="/" element={<Navigate to={homeRoute} replace />} />
+              <Route path="/crm" element={canViewDashboard ? <Dashboard /> : <Navigate to={homeRoute} replace />} />
+              <Route path="/crm/vendas" element={canUseSales ? <Vendas /> : <Navigate to={homeRoute} replace />} />
+              <Route path="/crm/products" element={canManageCatalog ? <Products /> : <Navigate to={homeRoute} replace />} />
+              <Route path="/crm/users" element={canManageUsers ? <Users /> : <Navigate to={homeRoute} replace />} />
+              <Route path="/crm/leads" element={canViewLeads ? <Leads /> : <Navigate to={homeRoute} replace />} />
+              <Route path="/crm/financeiro" element={canViewFinance ? <Financeiro /> : <Navigate to={homeRoute} replace />} />
+              <Route path="/crm/clientes" element={canViewCustomers ? <Customers /> : <Navigate to={homeRoute} replace />} />
+              <Route path="*" element={<Navigate to={homeRoute} replace />} />
+            </Routes>
+          </Suspense>
+        </div>
       </main>
     </div>
   );

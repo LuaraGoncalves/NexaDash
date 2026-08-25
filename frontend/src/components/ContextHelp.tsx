@@ -27,15 +27,15 @@ export default function ContextHelp({ title, children }: ContextHelpProps) {
         title={title}
         aria-label={title}
         onClick={() => setOpen((prev) => !prev)}
-        className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs font-black text-slate-300 transition hover:border-cyan-400/40 hover:text-cyan-300"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-[#ded6c9] bg-[#fffdfa] text-xs font-black text-[#20242c] shadow-sm transition hover:border-[#e7ca45] hover:bg-[#f6d957]"
       >
         i
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-72 rounded-2xl border border-gray-700 bg-[#111827] p-4 text-sm text-slate-200 shadow-2xl">
-          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-cyan-300">{title}</p>
-          <div className="space-y-2 text-sm leading-relaxed text-slate-300">{children}</div>
+        <div className="absolute right-0 top-10 z-50 w-72 rounded-2xl border border-[#ded6c9] bg-[#fffdfa] p-4 text-sm text-[#20242c] shadow-[0_24px_60px_rgba(56,50,43,0.18)]">
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#9a5b17]">{title}</p>
+          <div className="space-y-2 text-sm leading-relaxed text-[#766f66]">{children}</div>
         </div>
       )}
     </div>

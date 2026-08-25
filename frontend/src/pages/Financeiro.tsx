@@ -607,7 +607,7 @@ export default function Financeiro() {
                               </span>
                               <div className="flex items-center space-x-2 mt-1">
                                 <span className="text-xs text-gray-500">{transacao.forma_pagamento}</span>
-                                <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border ${transacao.status === 'Pago' ? 'border-green-500 text-green-500 bg-green-500/10' : transacao.status === 'Cancelado' ? 'border-gray-500 text-gray-500 bg-gray-500/10' : 'border-yellow-500 text-yellow-500 bg-yellow-500/10'}`}>
+                                <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border ${transacao.status === 'Pago' ? 'border-[#b7cbbd] bg-[#eaf2ec] text-[#214e39]' : transacao.status === 'Cancelado' ? 'border-gray-300 bg-gray-100 text-gray-600' : 'border-[#dcc27b] bg-[#fff6dc] text-[#5b4211]'}`}>
                                   {transacao.status}
                                 </span>
                               </div>
@@ -788,7 +788,7 @@ export default function Financeiro() {
                 </button>
                 <button
                   type="submit"
-                  className={`px-6 py-2 text-[#1a1e23] text-sm font-bold rounded-lg hover:bg-opacity-80 transition-colors ${transactionForm.tipo === 'receita' ? 'bg-green-500' : 'bg-red-500'} disabled:bg-gray-700 disabled:text-gray-500`}
+                  className={`px-6 py-2 text-white text-sm font-bold rounded-lg hover:bg-opacity-90 transition-colors ${transactionForm.tipo === 'receita' ? 'bg-[#2f6f4e]' : 'bg-[#9f2d2d]'} disabled:bg-gray-700 disabled:text-gray-300`}
                   disabled={isSavingTransaction}
                 >
                   {isSavingTransaction ? 'Salvando...' : editingTransaction ? 'Salvar Alterações' : `Salvar ${transactionForm.tipo === 'receita' ? 'Receita' : 'Despesa'}`}

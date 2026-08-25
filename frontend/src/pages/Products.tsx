@@ -1349,14 +1349,14 @@ export default function Products() {
                 <button
                   type="button"
                   onClick={() => setMovementForm((prev) => ({ ...prev, tipo: 'entrada' }))}
-                  className={`py-3 border-2 font-bold rounded-xl flex items-center justify-center ${movementForm.tipo === 'entrada' ? 'border-green-500 bg-green-500 bg-opacity-10 text-green-500' : 'border-transparent bg-[#1a1e23] text-gray-400 hover:text-white'}`}
+                  className={`py-3 border-2 font-bold rounded-xl flex items-center justify-center ${movementForm.tipo === 'entrada' ? 'border-[#b7cbbd] bg-[#eef7f0] text-[#214e39]' : 'border-transparent bg-[#1a1e23] text-gray-400 hover:text-white'}`}
                 >
                   Entrada
                 </button>
                 <button
                   type="button"
                   onClick={() => setMovementForm((prev) => ({ ...prev, tipo: 'saida' }))}
-                  className={`py-3 border-2 font-bold rounded-xl flex items-center justify-center ${movementForm.tipo === 'saida' ? 'border-red-500 bg-red-500 bg-opacity-10 text-red-400' : 'border-transparent bg-[#1a1e23] text-gray-400 hover:text-white'}`}
+                  className={`py-3 border-2 font-bold rounded-xl flex items-center justify-center ${movementForm.tipo === 'saida' ? 'border-[#e5c6c6] bg-[#fbefef] text-[#9f2d2d]' : 'border-transparent bg-[#1a1e23] text-gray-400 hover:text-white'}`}
                 >
                   Saida
                 </button>
@@ -1419,7 +1419,7 @@ export default function Products() {
               <button
                 type="submit"
                 form="movement-form"
-                className={`px-6 py-2 text-sm font-bold rounded-lg transition-colors shadow-lg ${movementForm.tipo === 'entrada' ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-red-500 text-white hover:bg-red-600'} disabled:bg-gray-700 disabled:text-gray-500`}
+                className={`px-6 py-2 text-sm font-bold rounded-lg transition-colors shadow-lg ${movementForm.tipo === 'entrada' ? 'bg-[#2f6f4e] text-white hover:bg-[#214e39]' : 'bg-[#9f2d2d] text-white hover:bg-[#7f2424]'} disabled:bg-gray-700 disabled:text-gray-300`}
                 disabled={isSavingMovement}
               >
                 {isSavingMovement ? 'Salvando...' : editingMovement ? 'Salvar movimentacao' : movementForm.tipo === 'entrada' ? 'Confirmar entrada' : 'Confirmar saida'}

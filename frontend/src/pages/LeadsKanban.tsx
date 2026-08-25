@@ -15,6 +15,7 @@ type LeadsKanbanProps = {
   onStatusChange?: (leadId: number, newStatus: Lead['status']) => Promise<void> | void;
   onDeleteLead?: (lead: Lead) => void;
   isUpdatingLeadId?: number | null;
+  canMoveLeads?: boolean;
 };
 
 export default function LeadsKanban({
@@ -24,6 +25,7 @@ export default function LeadsKanban({
   onStatusChange,
   onDeleteLead,
   isUpdatingLeadId = null,
+  canMoveLeads = true,
 }: LeadsKanbanProps) {
   const currentLeads = leads;
   const updateLeads = setLeads;
@@ -39,6 +41,7 @@ export default function LeadsKanban({
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
+    if (!canMoveLeads) return;
 
     const { draggableId, destination } = result;
     const newStatus = destination.droppableId as Lead["status"];
@@ -58,41 +61,43 @@ export default function LeadsKanban({
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex gap-6 p-6">
+      <div className="flex gap-5 p-5">
         {colunas.map((coluna) => (
           <Droppable key={coluna.key} droppableId={coluna.key}>
             {(provided) => (
               <div
                 ref={provided.innerRef}
                 {...provided.droppableProps}
-                className="bg-[#23272d] rounded-xl p-4 w-64 min-h-[500px]"
+                className="min-h-[500px] w-64 rounded-[1.5rem] border border-[#ded6c9] bg-[#fffdfa] p-4 shadow-[0_18px_45px_rgba(56,50,43,0.08)]"
               >
-                <h2 className="text-white font-bold mb-4">{coluna.titulo}</h2>
+                <h2 className="mb-4 text-sm font-black uppercase tracking-[0.18em] text-[#766f66]">{coluna.titulo}</h2>
 
                 <div className="space-y-3 h-full">
                   {currentLeads
                     .filter((lead) => lead.status === coluna.key)
                     .map((lead, index) => (
-                      <Draggable key={lead.id} draggableId={lead.id.toString()} index={index}>
+                      <Draggable key={lead.id} draggableId={lead.id.toString()} index={index} isDragDisabled={!canMoveLeads}>
                         {(provided) => (
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             onClick={() => handleLeadClick(lead)}
-                            className="bg-[#1a1e23] p-3 rounded-lg text-sm text-white shadow cursor-grab active:cursor-grabbing hover:bg-[#2a3038] transition-colors"
+                            className={`rounded-[1.25rem] border border-[#eee6da] bg-[#f6f1e8] p-3 text-sm text-[#20242c] shadow-sm transition hover:bg-[#fffdfa] hover:shadow-[0_12px_30px_rgba(56,50,43,0.10)] ${
+                              canMoveLeads ? 'cursor-grab hover:-translate-y-0.5 active:cursor-grabbing' : 'cursor-not-allowed opacity-80'
+                            }`}
                           >
                             <div className="flex items-center justify-between">
                               <div>
                                 <span>{lead.nome}</span>
                                 {isUpdatingLeadId === lead.id && (
-                                  <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-cyan-300">
+                                  <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[#9a5b17]">
                                     Salvando...
                                   </p>
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
-                                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-gray-500 hover:text-white cursor-pointer"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" /></svg>
+                                <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 cursor-pointer text-[#766f66] hover:text-[#20242c]"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" /></svg>
                                 {onDeleteLead && (
                                   <button
                                     type="button"
