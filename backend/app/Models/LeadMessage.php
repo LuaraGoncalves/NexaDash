@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class LeadMessage extends Model
 {
     public const SENDER_TEAM = 'team';
+
     public const SENDER_CUSTOMER = 'customer';
+
     public const SENDER_SYSTEM = 'system';
 
     public const SENDER_TYPES = [

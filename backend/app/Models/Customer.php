@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Customer extends Model
 {
     public const STATUS_ATIVO = 'ativo';
+
     public const STATUS_INATIVO = 'inativo';
 
     public const STATUS_OPTIONS = [

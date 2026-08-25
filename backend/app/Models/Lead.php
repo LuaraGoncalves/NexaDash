@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Lead extends Model
 {
     public const STATUS_NOVO = 'novo';
+
     public const STATUS_NEGOCIACAO = 'negociacao';
+
     public const STATUS_INDECISO = 'indeciso';
+
     public const STATUS_AGUARDANDO = 'aguardando';
+
     public const STATUS_CONCLUIDO = 'concluido';
 
     public const STATUS_OPTIONS = [
