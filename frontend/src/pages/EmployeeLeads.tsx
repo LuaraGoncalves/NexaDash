@@ -92,7 +92,11 @@ export default function EmployeeLeads() {
       return;
     }
 
-    void carregarMensagens(selectedLeadId);
+    const timeoutId = window.setTimeout(() => {
+      void carregarMensagens(selectedLeadId);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [carregarMensagens, selectedLeadId]);
 
   const selectedLead = leads.find((lead) => lead.id === selectedLeadId) ?? null;

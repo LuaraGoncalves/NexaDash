@@ -93,7 +93,12 @@ function Leads() {
       return;
     }
 
-    void carregarMensagens(selectedLead.id);
+    const leadId = selectedLead.id;
+    const timeoutId = window.setTimeout(() => {
+      void carregarMensagens(leadId);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [activeTab, carregarMensagens, selectedLead?.id]);
 
   const handleLeadClick = (lead: Lead) => {

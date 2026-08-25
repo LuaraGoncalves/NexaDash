@@ -154,7 +154,11 @@ export default function Financeiro() {
   }, [showToast]);
 
   useEffect(() => {
-    void carregarDados(true);
+    const timeoutId = window.setTimeout(() => {
+      void carregarDados(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [carregarDados]);
 
   const transacoesFiltradas = useMemo(() => {
