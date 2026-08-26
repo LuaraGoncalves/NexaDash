@@ -2,6 +2,8 @@
 
 CRM + gestao comercial leve com PDV, financeiro, leads, clientes, produtos, usuarios e auditoria.
 
+Projeto desenvolvido para portfolio, com foco em arquitetura full-stack, regras de negocio reais e execucao local. Nao ha deploy publico propositalmente.
+
 ## Resumo
 
 O NexaDash foi pensado como um sistema de operacao comercial de ponta a ponta:
@@ -24,6 +26,33 @@ O projeto esta organizado como um monorepo simples:
 
 - `backend/`: API Laravel
 - `frontend/`: aplicacao React + Vite
+
+## Arquitetura
+
+```text
+NexaDash
+|-- backend/   API REST em Laravel
+|   |-- app/Http/Controllers   entrada das requisicoes por modulo
+|   |-- app/Http/Middleware    autenticacao, cargos e permissoes
+|   |-- app/Models             entidades do dominio
+|   |-- app/Services           regras de negocio compartilhadas
+|   |-- database/migrations    estrutura do banco PostgreSQL
+|   `-- routes/api.php         rotas da API
+`-- frontend/  interface React
+    |-- src/pages              telas principais
+    |-- src/layouts            layouts por perfil de usuario
+    |-- src/services           comunicacao com a API
+    |-- src/context            autenticacao e feedback visual
+    `-- src/components         componentes reutilizaveis
+```
+
+Fluxo principal:
+
+1. O usuario entra pelo frontend React.
+2. O frontend chama a API Laravel usando Bearer Token.
+3. O backend valida autenticacao, cargo e permissoes.
+4. As regras de negocio gravam e consultam dados no PostgreSQL.
+5. A auditoria registra acoes importantes do sistema.
 
 ## Modulos atuais
 
@@ -52,6 +81,14 @@ O projeto esta organizado como um monorepo simples:
 - Backend: Laravel 12, PHP 8.2+, PostgreSQL
 - Frontend: React 19, TypeScript, Vite, Tailwind CSS
 
+## Pre-requisitos
+
+- PHP 8.2+
+- Composer
+- Node.js 24+
+- npm
+- PostgreSQL
+
 ## Como rodar localmente
 
 ### 1. Backend
@@ -59,17 +96,21 @@ O projeto esta organizado como um monorepo simples:
 ```powershell
 cd C:\NexaDash\backend
 composer install
+copy .env.example .env
 php artisan key:generate
 php artisan migrate
 php artisan db:seed
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 
+Antes de rodar as migrations, confira no arquivo `backend/.env` se o banco PostgreSQL existe e se `DB_DATABASE`, `DB_USERNAME` e `DB_PASSWORD` estao corretos para a sua maquina.
+
 ### 2. Frontend
 
 ```powershell
 cd C:\NexaDash\frontend
 npm install
+copy .env.example .env
 npm run dev
 ```
 
