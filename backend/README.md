@@ -5,7 +5,7 @@ API REST do NexaDash, responsavel por autenticacao, regras de negocio e persiste
 ## Tecnologias
 
 - Laravel 12
-- PHP 8.2+
+- PHP 8.4+
 - PostgreSQL
 
 ## Modulos da API

@@ -78,12 +78,12 @@ Fluxo principal:
 
 ## Tecnologias
 
-- Backend: Laravel 12, PHP 8.2+, PostgreSQL
+- Backend: Laravel 12, PHP 8.4+, PostgreSQL
 - Frontend: React 19, TypeScript, Vite, Tailwind CSS
 
 ## Pre-requisitos
 
-- PHP 8.2+
+- PHP 8.4+
 - Composer
 - Node.js 24+
 - npm
