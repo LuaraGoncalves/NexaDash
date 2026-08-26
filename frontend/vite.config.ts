@@ -27,7 +27,8 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     testTimeout: 15000,
     css: true,
-    pool: 'threads',
+    pool: 'vmThreads',
     fileParallelism: false,
+    teardownTimeout: 1000,
   },
 });
