@@ -3,50 +3,24 @@ import ConfirmActionModal from '../components/ConfirmActionModal';
 import ContextHelp from '../components/ContextHelp';
 import SaleEditModal from '../components/SaleEditModal';
 import { useToast } from '../context/useToast';
-import { createCustomer, listCustomers, type CustomerRecord } from '../services/customersApi';
-import { listProducts, type ProductRecord } from '../services/productsApi';
-import { createSale, deleteSale, listSales, updateSale, updateSaleStatus, type SalePaymentMethod, type SaleStatus } from '../services/salesApi';
-
-type Cliente = {
-  id: number;
-  nome: string;
-  telefone?: string;
-  email?: string;
-  observacoes?: string;
-};
-
-type ProdutoVenda = {
-  id: number;
-  sku: string;
-  nome: string;
-  preco_venda: number;
-  quantidade_estoque: number;
-};
-
-type ItemVenda = {
-  id_produto: number;
-  nome: string;
-  preco_unitario: number;
-  quantidade: number;
-  subtotal: number;
-};
-
-type FormaPagamento = SalePaymentMethod;
-type StatusVenda = SaleStatus;
-
-type Venda = {
-  id: number;
-  protocolo: string;
-  id_cliente: number;
-  cliente_nome: string;
-  data_hora: string;
-  total: number;
-  forma_pagamento: FormaPagamento;
-  status: StatusVenda;
-  itens: ItemVenda[];
-};
-
-const walkInCustomerLabel = 'Cliente avulso';
+import { createCustomer, listCustomers } from '../services/customersApi';
+import { listProducts } from '../services/productsApi';
+import { createSale, deleteSale, listSales, updateSale, updateSaleStatus } from '../services/salesApi';
+import { formatCurrency } from '../utils/formatters';
+import SummaryCard from './vendas/SummaryCard';
+import {
+  mapCustomerToClient,
+  mapProductToVendaProduto,
+  mapSaleRecord,
+  reconcileProductStock,
+  walkInCustomerLabel,
+  type Cliente,
+  type FormaPagamento,
+  type ItemVenda,
+  type ProdutoVenda,
+  type StatusVenda,
+  type Venda,
+} from './vendas/salesDomain';
 
 export default function Vendas() {
   const { showToast } = useToast();
@@ -339,12 +313,6 @@ export default function Vendas() {
       setIsUpdatingSale(false);
     }
   };
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
 
   const resetCustomerForm = () => {
     setCustomerForm({
@@ -909,98 +877,4 @@ export default function Vendas() {
       />
     </div>
   );
-}
-
-function SummaryCard({
-  label,
-  value,
-  helper,
-  highlight = false,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div className={`rounded-[1.5rem] border p-4 shadow-xl ${highlight ? 'border-cyan-500/30 bg-[#1d2630]' : 'border-gray-800 bg-[#23272d]'}`}>
-      <p className={`text-[10px] uppercase tracking-[0.3em] ${highlight ? 'text-cyan-300' : 'text-gray-500'}`}>{label}</p>
-      <p className={`mt-3 font-black ${highlight ? 'text-3xl text-[#00e6e6]' : 'text-lg text-white'}`}>{value}</p>
-      <p className="mt-1 text-xs text-gray-400">{helper}</p>
-    </div>
-  );
-}
-
-function mapCustomerToClient(customer: CustomerRecord): Cliente {
-  return {
-    id: customer.id,
-    nome: customer.name,
-    telefone: customer.phone ?? undefined,
-    email: customer.email ?? undefined,
-    observacoes: customer.notes ?? undefined,
-  };
-}
-
-function mapProductToVendaProduto(product: ProductRecord): ProdutoVenda {
-  return {
-    id: product.id,
-    sku: product.sku,
-    nome: product.nome,
-    preco_venda: Number(product.preco_venda),
-    quantidade_estoque: product.quantidade,
-  };
-}
-
-function reconcileProductStock(
-  products: ProdutoVenda[],
-  previousSale?: Pick<Venda, 'status' | 'itens'> | null,
-  nextSale?: Pick<Venda, 'status' | 'itens'> | null,
-): ProdutoVenda[] {
-  const previousQuantities = saleItemMap(previousSale);
-  const nextQuantities = saleItemMap(nextSale);
-
-  return products.map((product) => {
-    const restoredQuantity = previousQuantities.get(product.id) ?? 0;
-    const consumedQuantity = nextQuantities.get(product.id) ?? 0;
-
-    return {
-      ...product,
-      quantidade_estoque: Math.max(0, product.quantidade_estoque + restoredQuantity - consumedQuantity),
-    };
-  });
-}
-
-function saleItemMap(sale?: Pick<Venda, 'status' | 'itens'> | null): Map<number, number> {
-  if (!sale || sale.status !== 'Concluída') {
-    return new Map();
-  }
-
-  return sale.itens.reduce((map, item) => {
-    map.set(item.id_produto, (map.get(item.id_produto) ?? 0) + item.quantidade);
-    return map;
-  }, new Map<number, number>());
-}
-
-function mapSaleRecord(sale: {
-  id: number;
-  protocolo: string | null;
-  id_cliente?: number;
-  cliente_nome: string;
-  data_hora: string;
-  total: number;
-  forma_pagamento: string;
-  status?: 'Aberta' | 'Concluída' | 'Cancelada';
-  itens: ItemVenda[];
-}): Venda {
-  return {
-    id: sale.id,
-    protocolo: sale.protocolo ?? `VND-${String(sale.id).padStart(3, '0')}`,
-    id_cliente: sale.id_cliente ?? 0,
-    cliente_nome: sale.cliente_nome,
-    data_hora: sale.data_hora,
-    total: Number(sale.total),
-    forma_pagamento: sale.forma_pagamento as FormaPagamento,
-    status: sale.status ?? 'Aberta',
-    itens: sale.itens,
-  };
 }

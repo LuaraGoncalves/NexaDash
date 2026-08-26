@@ -3,9 +3,9 @@ import type { ReactNode } from 'react';
 import { ToastContext, type ToastItem, type ToastTone } from './toast-context';
 
 const toneStyles: Record<ToastTone, string> = {
-  success: 'border-emerald-400/30 bg-emerald-500/15 text-emerald-50',
-  error: 'border-red-400/30 bg-red-500/15 text-red-50',
-  info: 'border-cyan-400/30 bg-cyan-500/15 text-cyan-50',
+  success: 'border-[#b7cbbd] bg-[#edf5ee] text-[#214e39]',
+  error: 'border-[#e6b5ae] bg-[#fff0ee] text-[#9f2d2d]',
+  info: 'border-[#ded6c9] bg-[#fffdfa] text-[#20242c]',
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -34,7 +34,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto rounded-[1.5rem] border px-4 py-4 shadow-[0_20px_50px_rgba(15,23,42,0.25)] backdrop-blur ${toneStyles[toast.tone]}`}
+            className={`pointer-events-auto rounded-[1.5rem] border px-4 py-4 shadow-[0_24px_60px_rgba(56,50,43,0.18)] backdrop-blur ${toneStyles[toast.tone]}`}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -44,7 +44,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 onClick={() => removeToast(toast.id)}
-                className="rounded-full bg-black/10 px-2 py-1 text-xs font-black uppercase tracking-[0.2em] text-white/80 transition hover:bg-black/20"
+                className="rounded-full bg-[#20242c]/10 px-2 py-1 text-xs font-black uppercase tracking-[0.2em] text-[#20242c]/80 transition hover:bg-[#20242c]/20"
               >
                 x
               </button>

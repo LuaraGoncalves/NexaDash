@@ -27,6 +27,9 @@ type LeadFormState = {
 function Leads() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const permissions = user?.permissions ?? {};
+  const canEditLeads = user?.role === 'admin' || Boolean(permissions.editar_leads);
+  const canDeleteLeads = user?.role === 'admin' || Boolean(permissions.excluir_leads);
   const [activeTab, setActiveTab] = useState<'kanban' | 'chat'>('kanban');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -119,6 +122,15 @@ function Leads() {
   const handleCreateLead = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    if (!canEditLeads) {
+      showToast({
+        tone: 'error',
+        title: 'Sem permissao para criar lead',
+        description: 'Seu cargo pode visualizar leads, mas nao pode criar ou editar.',
+      });
+      return;
+    }
+
     if (!leadForm.name.trim()) {
       showToast({
         tone: 'info',
@@ -161,6 +173,15 @@ function Leads() {
   };
 
   const handleStatusChange = async (leadId: number, newStatus: LeadStatus) => {
+    if (!canEditLeads) {
+      showToast({
+        tone: 'error',
+        title: 'Sem permissao para editar lead',
+        description: 'A troca de status nao foi enviada porque seu usuario nao tem essa permissao.',
+      });
+      return;
+    }
+
     const previousLead = leads.find((lead) => lead.id === leadId);
 
     if (!previousLead || previousLead.status === newStatus) {
@@ -191,6 +212,16 @@ function Leads() {
 
   const handleDeleteLead = async () => {
     if (!leadToDelete) {
+      return;
+    }
+
+    if (!canDeleteLeads) {
+      showToast({
+        tone: 'error',
+        title: 'Sem permissao para excluir lead',
+        description: 'Seu cargo nao pode apagar leads do funil.',
+      });
+      setLeadToDelete(null);
       return;
     }
 
@@ -235,6 +266,15 @@ function Leads() {
 
   const handleSendMessage = async () => {
     if (!selectedLead || !messageDraft.trim()) {
+      return;
+    }
+
+    if (!canEditLeads) {
+      showToast({
+        tone: 'error',
+        title: 'Sem permissao para responder lead',
+        description: 'Seu usuario pode visualizar a conversa, mas nao pode enviar mensagens.',
+      });
       return;
     }
 
@@ -308,33 +348,35 @@ function Leads() {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="mb-6 flex items-end justify-between border-b border-gray-700 pb-2">
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="mb-6 flex flex-col gap-4 rounded-[2rem] border border-[#ded6c9] bg-[#fffdfa] px-5 py-4 shadow-[0_18px_45px_rgba(56,50,43,0.08)] lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-1">Gestao de Leads</h2>
-          <p className="text-gray-400 text-sm">Kanban real e conversa ligada no backend de mensagens.</p>
+          <h2 className="mb-1 text-2xl font-bold text-[#20242c]">Gestao de Leads</h2>
+          <p className="text-sm text-[#766f66]">Kanban real e conversa ligada no backend de mensagens.</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            onClick={() => setIsLeadModalOpen(true)}
-            className="rounded-full bg-[#00e6e6] px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#1a1e23] transition hover:bg-opacity-85"
-          >
-            Novo lead
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {canEditLeads && (
+            <button
+              type="button"
+              onClick={() => setIsLeadModalOpen(true)}
+              className="rounded-full bg-[#f6d957] px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#20242c] transition hover:bg-[#ffe982]"
+            >
+              Novo lead
+            </button>
+          )}
           <ContextHelp title="Ajuda de leads">
             <p>Lead e uma pessoa que ainda esta em conversa comercial.</p>
             <p>Arrastar no kanban muda o status. Na aba de conversa, as mensagens agora vao para o backend real.</p>
           </ContextHelp>
           <button
             onClick={() => setActiveTab('kanban')}
-            className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${activeTab === 'kanban' ? 'bg-[#23272d] text-white border-t border-l border-r border-[#00e6e6]' : 'text-gray-400 hover:text-white'}`}
+            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'kanban' ? 'bg-[#20242c] text-[#fffdfa]' : 'border border-[#ded6c9] bg-[#f6f1e8] text-[#766f66] hover:text-[#20242c]'}`}
           >
             Gerenciar Leads
           </button>
           <button
             onClick={() => setActiveTab('chat')}
-            className={`px-4 py-2 text-sm font-semibold rounded-t-lg transition-colors ${activeTab === 'chat' ? 'bg-[#23272d] text-white border-t border-l border-r border-[#00e6e6]' : 'text-gray-400 hover:text-white'}`}
+            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition-colors ${activeTab === 'chat' ? 'bg-[#20242c] text-[#fffdfa]' : 'border border-[#ded6c9] bg-[#f6f1e8] text-[#766f66] hover:text-[#20242c]'}`}
           >
             Conversas
           </button>
@@ -345,30 +387,31 @@ function Leads() {
         {activeTab === 'kanban' && (
           <div className="absolute inset-0 overflow-x-auto overflow-y-auto">
             {isLoading ? (
-              <div className="rounded-2xl border border-gray-800 bg-[#23272d] p-6 text-gray-400">Carregando leads...</div>
+              <div className="rounded-[2rem] border border-[#ded6c9] bg-[#fffdfa] p-6 text-[#766f66]">Carregando leads...</div>
             ) : (
               <LeadsKanban
                 leads={leads}
                 setLeads={setLeads}
                 onLeadClick={handleLeadClick}
                 onStatusChange={handleStatusChange}
-                onDeleteLead={setLeadToDelete}
+                onDeleteLead={canDeleteLeads ? setLeadToDelete : undefined}
                 isUpdatingLeadId={updatingLeadId}
+                canMoveLeads={canEditLeads}
               />
             )}
           </div>
         )}
 
         {activeTab === 'chat' && (
-          <div className="absolute inset-0 flex bg-[#23272d] rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
-            <div className="w-80 border-r border-gray-700 flex flex-col bg-[#1a1e23]">
-              <div className="p-4 border-b border-gray-700">
+          <div className="absolute inset-0 flex overflow-hidden rounded-[2rem] border border-[#ded6c9] bg-[#fffdfa] shadow-[0_24px_70px_rgba(56,50,43,0.12)]">
+            <div className="flex w-80 flex-col border-r border-[#ded6c9] bg-[#f6f1e8]">
+              <div className="border-b border-[#ded6c9] p-4">
                 <input
                   type="text"
                   value={chatSearch}
                   onChange={(event) => setChatSearch(event.target.value)}
                   placeholder="Buscar conversa..."
-                  className="w-full bg-[#2a3038] text-white text-sm rounded-full px-4 py-2 outline-none focus:ring-1 focus:ring-[#00e6e6]"
+                  className="w-full rounded-full border border-[#ded6c9] bg-[#fffdfa] px-4 py-2 text-sm text-[#20242c] outline-none focus:ring-2 focus:ring-[#f6d957]"
                 />
               </div>
 
@@ -380,21 +423,21 @@ function Leads() {
                     <div
                       key={lead.id}
                       onClick={() => setSelectedLead(lead)}
-                      className={`flex items-center p-4 border-b border-gray-800 cursor-pointer transition-colors ${selectedLead?.id === lead.id ? 'bg-[#2a3038]' : 'hover:bg-[#23272d]'}`}
+                      className={`flex cursor-pointer items-center border-b border-[#eee6da] p-4 transition-colors ${selectedLead?.id === lead.id ? 'bg-[#f6d957]/30' : 'hover:bg-[#fffdfa]'}`}
                     >
                       <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-white font-bold">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#20242c] font-bold text-[#f6d957]">
                           {lead.nome.charAt(0)}
                         </div>
-                        <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#1a1e23] ${getStatusColor(lead.status)}`}></div>
+                        <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#f6f1e8] ${getStatusColor(lead.status)}`}></div>
                       </div>
 
                       <div className="ml-3 flex-1 overflow-hidden">
                         <div className="flex justify-between items-center gap-3">
-                          <h4 className="text-white text-sm font-semibold truncate">{lead.nome}</h4>
-                          <span className="text-xs text-gray-500">{lastMessage ? formatChatTime(lastMessage.sent_at) : '--:--'}</span>
+                          <h4 className="truncate text-sm font-semibold text-[#20242c]">{lead.nome}</h4>
+                          <span className="text-xs text-[#766f66]">{lastMessage ? formatChatTime(lastMessage.sent_at) : '--:--'}</span>
                         </div>
-                        <p className="text-xs text-gray-400 truncate mt-0.5">
+                        <p className="mt-0.5 truncate text-xs text-[#766f66]">
                           {lastMessage ? lastMessage.message : 'Sem mensagens ainda'}
                         </p>
                       </div>
@@ -404,41 +447,43 @@ function Leads() {
               </div>
             </div>
 
-            <div className="flex-1 flex flex-col bg-[#23272d]">
+            <div className="flex flex-1 flex-col bg-[#fffdfa]">
               {selectedLead ? (
                 <>
-                  <div className="h-16 border-b border-gray-700 flex items-center px-6 justify-between bg-[#1a1e23]">
+                  <div className="flex h-16 items-center justify-between border-b border-[#ded6c9] bg-[#f6f1e8] px-6">
                     <div className="flex items-center">
-                      <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white font-bold mr-3">
+                      <div className="mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#20242c] font-bold text-[#f6d957]">
                         {selectedLead.nome.charAt(0)}
                       </div>
                       <div>
-                        <h3 className="text-white font-semibold">{selectedLead.nome}</h3>
+                        <h3 className="font-semibold text-[#20242c]">{selectedLead.nome}</h3>
                         <div className="flex items-center space-x-2">
                           <span className={`w-2 h-2 rounded-full ${getStatusColor(selectedLead.status)}`}></span>
-                          <span className="text-[10px] text-gray-400 capitalize">{selectedLead.status}</span>
-                          <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400">
+                          <span className="text-[10px] capitalize text-[#766f66]">{selectedLead.status}</span>
+                          <span className="rounded-full border border-[#ded6c9] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#766f66]">
                             {mensagensSelecionadas.length} mensagens
                           </span>
                         </div>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setLeadToDelete(selectedLead)}
-                      className="rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-red-300 transition hover:bg-red-500/20"
-                    >
-                      Excluir lead
-                    </button>
+                    {canDeleteLeads && (
+                      <button
+                        type="button"
+                        onClick={() => setLeadToDelete(selectedLead)}
+                        className="rounded-full border border-[#e5c6c6] bg-[#fbefef] px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#9f2d2d] transition hover:bg-[#f8dddd]"
+                      >
+                        Excluir lead
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     {isLoadingMessages ? (
-                      <div className="rounded-2xl border border-dashed border-gray-700 bg-[#1a1e23] px-5 py-10 text-center text-gray-500">
+                      <div className="rounded-2xl border border-dashed border-[#ded6c9] bg-[#f6f1e8] px-5 py-10 text-center text-[#766f66]">
                         Carregando conversa...
                       </div>
                     ) : mensagensSelecionadas.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-gray-700 bg-[#1a1e23] px-5 py-10 text-center text-gray-500">
+                      <div className="rounded-2xl border border-dashed border-[#ded6c9] bg-[#f6f1e8] px-5 py-10 text-center text-[#766f66]">
                         Ainda nao existe conversa salva para este lead.
                       </div>
                     ) : (
@@ -447,7 +492,7 @@ function Leads() {
 
                         return (
                           <div key={mensagem.id} className={`flex ${isTeam ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`${isTeam ? 'bg-[#00e6e6] bg-opacity-20 text-[#00e6e6] rounded-tl-xl rounded-br-xl rounded-bl-xl border border-cyan-500/10' : 'bg-[#2a3038] text-gray-200 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-white/5'} p-3 max-w-[70%] shadow-md`}>
+                            <div className={`${isTeam ? 'rounded-tl-xl rounded-bl-xl rounded-br-xl border border-[#ded6c9] bg-[#f6d957]/30 text-[#20242c]' : 'rounded-tr-xl rounded-bl-xl rounded-br-xl border border-[#ded6c9] bg-[#f6f1e8] text-[#20242c]'} max-w-[70%] p-3 shadow-sm`}>
                               <div className="mb-2 flex items-center justify-between gap-3">
                                 <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-70">{mensagem.sender_name}</p>
                                 <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] opacity-70">
@@ -463,46 +508,54 @@ function Leads() {
                     )}
                   </div>
 
-                  <div className="p-4 bg-[#1a1e23] border-t border-gray-700">
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      {quickReplies.map((reply) => (
-                        <button
-                          key={reply}
-                          type="button"
-                          onClick={() => setMessageDraft(reply)}
-                          className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-bold text-slate-300 hover:border-cyan-400/40 hover:text-white"
-                        >
-                          {reply}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex items-center bg-[#2a3038] rounded-full px-4 py-2">
-                      <input
-                        type="text"
-                        value={messageDraft}
-                        onChange={(event) => setMessageDraft(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault();
-                            void handleSendMessage();
-                          }
-                        }}
-                        placeholder="Digite uma mensagem..."
-                        className="flex-1 bg-transparent text-white text-sm outline-none px-2"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => void handleSendMessage()}
-                        disabled={isSendingMessage || !messageDraft.trim()}
-                        className="bg-[#00e6e6] text-[#1a1e23] rounded-full px-4 py-2 ml-2 hover:bg-opacity-80 transition disabled:bg-gray-600 disabled:text-gray-400"
-                      >
-                        {isSendingMessage ? 'Enviando...' : 'Enviar'}
-                      </button>
-                    </div>
+                  <div className="border-t border-[#ded6c9] bg-[#f6f1e8] p-4">
+                    {canEditLeads ? (
+                      <>
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {quickReplies.map((reply) => (
+                            <button
+                              key={reply}
+                              type="button"
+                              onClick={() => setMessageDraft(reply)}
+                              className="rounded-full border border-[#ded6c9] bg-[#fffdfa] px-3 py-1.5 text-xs font-bold text-[#766f66] hover:border-[#e7ca45] hover:text-[#20242c]"
+                            >
+                              {reply}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex items-center rounded-full border border-[#ded6c9] bg-[#fffdfa] px-4 py-2">
+                          <input
+                            type="text"
+                            value={messageDraft}
+                            onChange={(event) => setMessageDraft(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault();
+                                void handleSendMessage();
+                              }
+                            }}
+                            placeholder="Digite uma mensagem..."
+                            className="flex-1 bg-transparent px-2 text-sm text-[#20242c] outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void handleSendMessage()}
+                            disabled={isSendingMessage || !messageDraft.trim()}
+                            className="ml-2 rounded-full bg-[#20242c] px-4 py-2 text-[#fffdfa] transition hover:bg-[#171a20] disabled:bg-[#ded6c9] disabled:text-[#766f66]"
+                          >
+                            {isSendingMessage ? 'Enviando...' : 'Enviar'}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="rounded-2xl border border-[#ded6c9] bg-[#fffdfa] px-4 py-3 text-sm text-[#766f66]">
+                        Voce pode acompanhar a conversa, mas nao tem permissao para responder ou mudar status.
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+                <div className="flex flex-1 flex-col items-center justify-center text-[#766f66]">
                   <p>Selecione um lead ao lado para abrir a conversa.</p>
                 </div>
               )}
@@ -522,53 +575,53 @@ function Leads() {
       />
 
       {isLeadModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-gray-700 bg-[#23272d] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-700 bg-[#1a1e23] px-6 py-4 rounded-t-2xl">
-              <h3 className="text-lg font-bold text-white">Novo lead</h3>
-              <button type="button" onClick={closeLeadModal} className="text-gray-400 hover:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#20242c]/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[2rem] border border-[#ded6c9] bg-[#fffdfa] shadow-[0_24px_70px_rgba(56,50,43,0.22)]">
+            <div className="flex items-center justify-between rounded-t-[2rem] border-b border-[#ded6c9] bg-[#f6f1e8] px-6 py-4">
+              <h3 className="text-lg font-bold text-[#20242c]">Novo lead</h3>
+              <button type="button" onClick={closeLeadModal} className="text-[#766f66] hover:text-[#20242c]">
                 x
               </button>
             </div>
 
             <form onSubmit={handleCreateLead} className="space-y-4 p-6">
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">Nome *</label>
+                <label className="mb-1 block text-xs font-semibold text-[#766f66]">Nome *</label>
                 <input
                   type="text"
                   value={leadForm.name}
                   onChange={(event) => setLeadForm((prev) => ({ ...prev, name: event.target.value }))}
-                  className="w-full rounded-lg border border-gray-700 bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6]"
+                  className="w-full rounded-2xl border border-[#ded6c9] bg-[#f6f1e8] px-4 py-3 text-[#20242c] outline-none focus:border-[#f6d957]"
                 />
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1">Telefone</label>
+                  <label className="mb-1 block text-xs font-semibold text-[#766f66]">Telefone</label>
                   <input
                     type="text"
                     value={leadForm.phone}
                     onChange={(event) => setLeadForm((prev) => ({ ...prev, phone: event.target.value }))}
-                    className="w-full rounded-lg border border-gray-700 bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6]"
+                    className="w-full rounded-2xl border border-[#ded6c9] bg-[#f6f1e8] px-4 py-3 text-[#20242c] outline-none focus:border-[#f6d957]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 mb-1">Email</label>
+                  <label className="mb-1 block text-xs font-semibold text-[#766f66]">Email</label>
                   <input
                     type="email"
                     value={leadForm.email}
                     onChange={(event) => setLeadForm((prev) => ({ ...prev, email: event.target.value }))}
-                    className="w-full rounded-lg border border-gray-700 bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6]"
+                    className="w-full rounded-2xl border border-[#ded6c9] bg-[#f6f1e8] px-4 py-3 text-[#20242c] outline-none focus:border-[#f6d957]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1">Status inicial</label>
+                <label className="mb-1 block text-xs font-semibold text-[#766f66]">Status inicial</label>
                 <select
                   value={leadForm.status}
                   onChange={(event) => setLeadForm((prev) => ({ ...prev, status: event.target.value as LeadStatus }))}
-                  className="w-full rounded-lg border border-gray-700 bg-[#1a1e23] px-4 py-3 text-white outline-none focus:border-[#00e6e6]"
+                  className="w-full rounded-2xl border border-[#ded6c9] bg-[#f6f1e8] px-4 py-3 text-[#20242c] outline-none focus:border-[#f6d957]"
                 >
                   <option value="novo">Novo</option>
                   <option value="negociacao">Negociacao</option>
@@ -579,12 +632,12 @@ function Leads() {
               </div>
 
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={closeLeadModal} className="px-4 py-2 text-sm font-bold text-gray-400 hover:text-white">
+                <button type="button" onClick={closeLeadModal} className="px-4 py-2 text-sm font-bold text-[#766f66] hover:text-[#20242c]">
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-[#00e6e6] px-6 py-2 text-sm font-bold text-[#1a1e23] disabled:bg-gray-700 disabled:text-gray-500"
+                  className="rounded-2xl bg-[#f6d957] px-6 py-2 text-sm font-bold text-[#20242c] disabled:bg-[#ded6c9] disabled:text-[#766f66]"
                   disabled={isSavingLead}
                 >
                   {isSavingLead ? 'Salvando...' : 'Salvar lead'}

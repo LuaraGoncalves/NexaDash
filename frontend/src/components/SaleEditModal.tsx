@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { SalePaymentMethod, SalePayload, SaleStatus } from '../services/salesApi';
+import { formatCurrency } from '../utils/formatters';
 
 export type SaleEditCustomer = {
   id: number;
@@ -333,7 +334,7 @@ export default function SaleEditModal({
                             <button
                               type="button"
                               onClick={() => changeQuantity(item.id_produto, 1)}
-                              className="h-10 w-10 rounded-2xl bg-cyan-400 text-xl font-black text-slate-950"
+                              className="h-10 w-10 rounded-2xl bg-[#2f6f4e] text-xl font-black text-white"
                             >
                               +
                             </button>
@@ -372,7 +373,7 @@ export default function SaleEditModal({
               type="button"
               onClick={() => void handleSave()}
               disabled={items.length === 0 || isSaving}
-              className="rounded-[1.25rem] bg-cyan-400 px-5 py-3 text-sm font-black text-slate-950 disabled:bg-gray-700 disabled:text-gray-500"
+              className="rounded-[1.25rem] bg-[#2f6f4e] px-5 py-3 text-sm font-black text-white disabled:bg-gray-700 disabled:text-gray-300"
             >
               {isSaving ? 'Salvando...' : 'Salvar alteraçoes'}
             </button>
@@ -381,11 +382,4 @@ export default function SaleEditModal({
       </div>
     </div>
   );
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
 }

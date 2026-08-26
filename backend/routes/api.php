@@ -1,9 +1,7 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FinancialCategoryController;
@@ -17,6 +15,7 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserManagementController;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -32,11 +31,11 @@ Route::middleware('api.auth')->group(function () {
         Route::middleware('role:admin,manager,employee')->group(function () {
             Route::get('/products', [ProductController::class, 'index']);
 
-            Route::get('/leads', [LeadController::class, 'index']);
-            Route::post('/leads', [LeadController::class, 'store']);
-            Route::put('/leads/{id}', [LeadController::class, 'update']);
-            Route::get('/leads/{id}/messages', [LeadMessageController::class, 'index']);
-            Route::post('/leads/{id}/messages', [LeadMessageController::class, 'store']);
+            Route::get('/leads', [LeadController::class, 'index'])->middleware('permission:ver_leads');
+            Route::post('/leads', [LeadController::class, 'store'])->middleware('permission:editar_leads');
+            Route::put('/leads/{id}', [LeadController::class, 'update'])->middleware('permission:editar_leads');
+            Route::get('/leads/{id}/messages', [LeadMessageController::class, 'index'])->middleware('permission:ver_leads');
+            Route::post('/leads/{id}/messages', [LeadMessageController::class, 'store'])->middleware('permission:editar_leads');
 
             Route::get('/sales', [SaleController::class, 'index']);
             Route::post('/sales', [SaleController::class, 'store']);
@@ -69,13 +68,13 @@ Route::middleware('api.auth')->group(function () {
             Route::put('/inventory-movements/{id}', [InventoryMovementController::class, 'update']);
             Route::delete('/inventory-movements/{id}', [InventoryMovementController::class, 'destroy']);
 
-            Route::delete('/leads/{id}', [LeadController::class, 'destroy']);
+            Route::delete('/leads/{id}', [LeadController::class, 'destroy'])->middleware('permission:excluir_leads');
             Route::put('/sales/{id}', [SaleController::class, 'update']);
             Route::delete('/sales/{id}', [SaleController::class, 'destroy']);
             Route::put('/customers/{id}', [CustomerController::class, 'update']);
         });
 
-        Route::middleware('role:admin,finance')->group(function () {
+        Route::middleware(['role:admin,finance', 'permission:ver_financeiro'])->group(function () {
             Route::get('/financial/categories', [FinancialCategoryController::class, 'index']);
             Route::post('/financial/categories', [FinancialCategoryController::class, 'store']);
             Route::put('/financial/categories/{id}', [FinancialCategoryController::class, 'update']);
@@ -89,7 +88,7 @@ Route::middleware('api.auth')->group(function () {
 
         Route::middleware('role:admin')->group(function () {
             Route::get('/users', [UserManagementController::class, 'index']);
-            Route::post('/users', [UserManagementController::class, 'store']);
+            Route::post('/users', [UserManagementController::class, 'store'])->middleware('permission:criar_usuario');
             Route::put('/users/{id}', [UserManagementController::class, 'update']);
             Route::delete('/users/{id}', [UserManagementController::class, 'destroy']);
 

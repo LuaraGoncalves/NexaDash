@@ -1,3 +1,5 @@
+import { apiRequest } from './apiClient';
+
 export type ProductStatus = 'ativo' | 'inativo';
 export type InventoryMovementType = 'entrada' | 'saida';
 
@@ -115,214 +117,147 @@ export type SupplierUpdatePayload = Partial<{
   status: ProductStatus;
 }>;
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api';
-const TOKEN_KEY = 'nexadash_token';
-
-function authHeaders(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
-
-  return token
-    ? {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
-    : {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      };
-}
-
-async function handleResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || 'Erro ao comunicar com a API de produtos');
-  }
-
-  return response.json() as Promise<T>;
-}
-
 export async function listProducts(): Promise<ProductRecord[]> {
-  const response = await fetch(`${API_BASE}/crm/products`, {
-    headers: authHeaders(),
+  return apiRequest<ProductRecord[]>('/crm/products', {
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<ProductRecord[]>(response);
 }
 
 export async function createProduct(payload: ProductPayload): Promise<ProductRecord> {
-  const response = await fetch(`${API_BASE}/crm/products`, {
+  return apiRequest<ProductRecord>('/crm/products', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<ProductRecord>(response);
 }
 
 export async function listProductCategories(): Promise<ProductCategoryRecord[]> {
-  const response = await fetch(`${API_BASE}/crm/product-categories`, {
-    headers: authHeaders(),
+  return apiRequest<ProductCategoryRecord[]>('/crm/product-categories', {
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<ProductCategoryRecord[]>(response);
 }
 
 export async function createProductCategory(payload: ProductCategoryPayload): Promise<ProductCategoryRecord> {
-  const response = await fetch(`${API_BASE}/crm/product-categories`, {
+  return apiRequest<ProductCategoryRecord>('/crm/product-categories', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<ProductCategoryRecord>(response);
 }
 
 export async function updateProductCategory(id: number, payload: Partial<ProductCategoryPayload>): Promise<ProductCategoryRecord> {
-  const response = await fetch(`${API_BASE}/crm/product-categories/${id}`, {
+  return apiRequest<ProductCategoryRecord>(`/crm/product-categories/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<ProductCategoryRecord>(response);
 }
 
 export async function listSuppliers(): Promise<SupplierRecord[]> {
-  const response = await fetch(`${API_BASE}/crm/suppliers`, {
-    headers: authHeaders(),
+  return apiRequest<SupplierRecord[]>('/crm/suppliers', {
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<SupplierRecord[]>(response);
 }
 
 export async function createSupplier(payload: SupplierPayload): Promise<SupplierRecord> {
-  const response = await fetch(`${API_BASE}/crm/suppliers`, {
+  return apiRequest<SupplierRecord>('/crm/suppliers', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<SupplierRecord>(response);
 }
 
 export async function listUnits(): Promise<UnitRecord[]> {
-  const response = await fetch(`${API_BASE}/crm/units`, {
-    headers: authHeaders(),
+  return apiRequest<UnitRecord[]>('/crm/units', {
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<UnitRecord[]>(response);
 }
 
 export async function createUnit(payload: UnitPayload): Promise<UnitRecord> {
-  const response = await fetch(`${API_BASE}/crm/units`, {
+  return apiRequest<UnitRecord>('/crm/units', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<UnitRecord>(response);
 }
 
 export async function updateUnit(id: number, payload: Partial<UnitPayload>): Promise<UnitRecord> {
-  const response = await fetch(`${API_BASE}/crm/units/${id}`, {
+  return apiRequest<UnitRecord>(`/crm/units/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<UnitRecord>(response);
 }
 
 export async function listInventoryMovements(): Promise<InventoryMovementRecord[]> {
-  const response = await fetch(`${API_BASE}/crm/inventory-movements`, {
-    headers: authHeaders(),
+  return apiRequest<InventoryMovementRecord[]>('/crm/inventory-movements', {
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<InventoryMovementRecord[]>(response);
 }
 
 export async function createInventoryMovement(payload: InventoryMovementPayload): Promise<InventoryMovementRecord> {
-  const response = await fetch(`${API_BASE}/crm/inventory-movements`, {
+  return apiRequest<InventoryMovementRecord>('/crm/inventory-movements', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<InventoryMovementRecord>(response);
 }
 
 export async function updateInventoryMovement(id: number, payload: InventoryMovementPayload): Promise<InventoryMovementRecord> {
-  const response = await fetch(`${API_BASE}/crm/inventory-movements/${id}`, {
+  return apiRequest<InventoryMovementRecord>(`/crm/inventory-movements/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<InventoryMovementRecord>(response);
 }
 
 export async function deleteProduct(id: number): Promise<{ message: string; product: ProductRecord }> {
-  const response = await fetch(`${API_BASE}/crm/products/${id}`, {
+  return apiRequest<{ message: string; product: ProductRecord }>(`/crm/products/${id}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<{ message: string; product: ProductRecord }>(response);
 }
 
 export async function updateProduct(id: number, payload: ProductUpdatePayload): Promise<ProductRecord> {
-  const response = await fetch(`${API_BASE}/crm/products/${id}`, {
+  return apiRequest<ProductRecord>(`/crm/products/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<ProductRecord>(response);
 }
 
 export async function deleteProductCategory(id: number): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE}/crm/product-categories/${id}`, {
+  return apiRequest<{ message: string }>(`/crm/product-categories/${id}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<{ message: string }>(response);
 }
 
 export async function deleteSupplier(id: number): Promise<{ message: string; supplier: SupplierRecord }> {
-  const response = await fetch(`${API_BASE}/crm/suppliers/${id}`, {
+  return apiRequest<{ message: string; supplier: SupplierRecord }>(`/crm/suppliers/${id}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<{ message: string; supplier: SupplierRecord }>(response);
 }
 
 export async function updateSupplier(id: number, payload: SupplierUpdatePayload): Promise<SupplierRecord> {
-  const response = await fetch(`${API_BASE}/crm/suppliers/${id}`, {
+  return apiRequest<SupplierRecord>(`/crm/suppliers/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<SupplierRecord>(response);
 }
 
 export async function deleteUnit(id: number): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE}/crm/units/${id}`, {
+  return apiRequest<{ message: string }>(`/crm/units/${id}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<{ message: string }>(response);
 }
 
 export async function deleteInventoryMovement(id: number): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE}/crm/inventory-movements/${id}`, {
+  return apiRequest<{ message: string }>(`/crm/inventory-movements/${id}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    errorMessage: 'Erro ao comunicar com a API de produtos',
   });
-
-  return handleResponse<{ message: string }>(response);
 }

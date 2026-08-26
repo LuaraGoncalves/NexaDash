@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class FinancialCategory extends Model
 {
     public const TIPO_RECEITA = 'receita';
+
     public const TIPO_DESPESA = 'despesa';
+
     public const TIPO_AMBOS = 'ambos';
 
     public const TIPOS = [

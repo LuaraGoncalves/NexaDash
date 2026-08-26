@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class InventoryMovement extends Model
 {
     public const TIPO_ENTRADA = 'entrada';
+
     public const TIPO_SAIDA = 'saida';
 
     public const TIPOS = [

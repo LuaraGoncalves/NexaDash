@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Sale extends Model
 {
     public const STATUS_ABERTA = 'Aberta';
+
     public const STATUS_CONCLUIDA = 'Concluída';
+
     public const STATUS_CANCELADA = 'Cancelada';
 
     public const STATUS_OPTIONS = [

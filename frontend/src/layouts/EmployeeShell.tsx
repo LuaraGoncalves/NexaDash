@@ -7,48 +7,48 @@ export default function EmployeeShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const canViewLeads = Boolean(user?.permissions?.ver_leads);
 
   const currentPath = location.pathname.startsWith('/crm/leads') ? 'leads' : 'pdv';
 
   return (
-    <div className="min-h-screen bg-[#e5e7eb] text-slate-900 flex flex-col">
-      <header className="border-b border-slate-200 bg-white px-4 py-4 shadow-sm md:px-6">
+    <div className="nexa-ui flex min-h-screen flex-col bg-[#d8d2c8] p-4 text-[#20242c]">
+      <header className="rounded-[2rem] border border-[#ded6c9] bg-[#fffdfa] px-4 py-4 shadow-[0_24px_70px_rgba(56,50,43,0.12)] md:px-6">
         <div className="mx-auto flex max-w-[1800px] flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.35em] font-black text-slate-400">Modo Funcionaria</p>
-            <h1 className="mt-1 text-3xl font-black tracking-tight">Atendimento rapido</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Dois caminhos grandes: vender ou responder lead. O resto fica escondido para nao atrapalhar.
-            </p>
+            <h1 className="text-2xl font-semibold">Atendimento rápido</h1>
+            <p className="mt-1 text-sm text-[#766f66]">PDV e leads em modo balcão.</p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="rounded-full bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600">
-              {user?.name} • {user?.role}
+            <div className="rounded-2xl border border-[#ded6c9] bg-[#f6f1e8] px-4 py-3 text-sm font-medium text-[#766f66]">
+              {user?.name} / {user?.role}
             </div>
             <button
               onClick={() => navigate('/crm/vendas')}
-              className={`min-w-[180px] rounded-[1.25rem] px-6 py-4 text-lg font-black transition ${
+              className={`min-w-[160px] rounded-lg px-5 py-4 text-base font-semibold transition ${
                 currentPath === 'pdv'
-                  ? 'bg-[#16a34a] text-white shadow-[0_12px_30px_rgba(22,163,74,0.25)]'
-                  : 'bg-slate-900 text-white hover:bg-slate-800'
+                  ? 'bg-[#20242c] text-[#fffdfa]'
+                  : 'border border-[#ded6c9] bg-[#fffdfa] text-[#20242c] hover:bg-[#eee8de]'
               }`}
             >
               Abrir PDV
             </button>
-            <button
-              onClick={() => navigate('/crm/leads')}
-              className={`min-w-[180px] rounded-[1.25rem] px-6 py-4 text-lg font-black transition ${
-                currentPath === 'leads'
-                  ? 'bg-[#2563eb] text-white shadow-[0_12px_30px_rgba(37,99,235,0.25)]'
-                  : 'bg-white text-slate-900 border-2 border-slate-200 hover:border-slate-300'
-              }`}
-            >
-              Abrir Leads
-            </button>
+            {canViewLeads && (
+              <button
+                onClick={() => navigate('/crm/leads')}
+                className={`min-w-[160px] rounded-lg px-5 py-4 text-base font-semibold transition ${
+                  currentPath === 'leads'
+                    ? 'bg-[#20242c] text-[#fffdfa]'
+                    : 'border border-[#ded6c9] bg-[#fffdfa] text-[#20242c] hover:bg-[#eee8de]'
+                }`}
+              >
+                Abrir Leads
+              </button>
+            )}
             <button
               onClick={() => logout()}
-              className="rounded-[1.25rem] border-2 border-slate-200 bg-white px-6 py-4 text-base font-black text-slate-600 hover:border-slate-300"
+              className="rounded-2xl border border-[#ded6c9] bg-[#fffdfa] px-5 py-4 text-base font-semibold text-[#766f66] hover:border-[#c9beaf] hover:text-[#20242c]"
             >
               Sair
             </button>
@@ -56,11 +56,11 @@ export default function EmployeeShell() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-hidden">
+      <main className="mt-4 min-h-0 flex-1 overflow-hidden rounded-[2rem] border border-[#ded6c9] bg-[#f6f1e8] shadow-[0_24px_70px_rgba(56,50,43,0.12)]">
         <div className="h-full overflow-hidden">
           <Routes>
             <Route path="/crm/vendas" element={<EmployeePdv />} />
-            <Route path="/crm/leads" element={<EmployeeLeads />} />
+            <Route path="/crm/leads" element={canViewLeads ? <EmployeeLeads /> : <Navigate to="/crm/vendas" replace />} />
             <Route path="*" element={<Navigate to="/crm/vendas" replace />} />
           </Routes>
         </div>

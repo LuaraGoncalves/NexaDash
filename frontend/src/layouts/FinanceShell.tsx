@@ -24,25 +24,22 @@ export default function FinanceShell() {
   };
 
   return (
-    <div className="min-h-screen bg-[#eef3f7] text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-[1700px] flex-col gap-6 px-4 py-4 md:px-6">
-        <header className="rounded-[2rem] bg-white px-6 py-5 shadow-[0_20px_50px_rgba(15,23,42,0.08)]">
+    <div className="nexa-ui min-h-screen bg-[#d8d2c8] text-[#20242c]">
+      <div className="mx-auto flex min-h-screen max-w-[1700px] flex-col gap-5 px-4 py-4 md:px-6">
+        <header className="rounded-[2rem] border border-[#ded6c9] bg-[#fffdfa] px-5 py-4 shadow-[0_24px_70px_rgba(56,50,43,0.12)]">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.35em] text-[#2563eb]">Painel financeiro</p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight">Receber, pagar e acompanhar sem distraçao</h1>
-              <p className="mt-2 max-w-3xl text-sm text-slate-500">
-                Este perfil fica focado no dinheiro que entra, no dinheiro que sai e nos indicadores que ajudam a decidir.
-              </p>
+              <h1 className="text-2xl font-semibold">Painel financeiro</h1>
+              <p className="mt-1 text-sm text-[#766f66]">Fluxo de caixa e indicadores financeiros.</p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="rounded-full bg-[#eff6ff] px-4 py-3 text-sm font-bold text-[#1d4ed8]">
-                {user?.name} • financeiro
+              <div className="rounded-2xl border border-[#ded6c9] bg-[#f6f1e8] px-4 py-2 text-sm font-medium text-[#766f66]">
+                {user?.name} / financeiro
               </div>
               <button
                 onClick={handleLogout}
-                className="rounded-[1.25rem] border-2 border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 hover:border-slate-300"
+                className="rounded-2xl border border-[#ded6c9] bg-[#fffdfa] px-4 py-2 text-sm font-medium text-[#766f66] hover:border-[#c9beaf] hover:text-[#20242c]"
               >
                 Sair
               </button>
@@ -50,10 +47,9 @@ export default function FinanceShell() {
           </div>
         </header>
 
-        <div className="grid flex-1 gap-6 xl:grid-cols-[260px_1fr]">
-          <aside className="rounded-[2rem] bg-[#0f172a] p-5 text-white shadow-[0_20px_50px_rgba(15,23,42,0.15)]">
-            <p className="text-[11px] font-black uppercase tracking-[0.35em] text-blue-300">Acesso rapido</p>
-            <div className="mt-5 space-y-3">
+        <div className="grid flex-1 gap-5 xl:grid-cols-[250px_1fr]">
+          <aside className="rounded-[2rem] border border-[#ded6c9] bg-[#fffdfa] p-3 shadow-[0_24px_70px_rgba(56,50,43,0.08)]">
+            <div className="space-y-1">
               {navigationItems.map((item) => {
                 const isActive = currentPath === item.to;
 
@@ -61,10 +57,10 @@ export default function FinanceShell() {
                   <button
                     key={item.to}
                     onClick={() => navigate(item.to)}
-                    className={`w-full rounded-[1.5rem] px-4 py-4 text-left text-base font-black transition ${
+                    className={`w-full rounded-lg px-3 py-3 text-left text-sm font-medium transition ${
                       isActive
-                        ? 'bg-blue-400 text-slate-950 shadow-[0_12px_30px_rgba(96,165,250,0.25)]'
-                        : 'bg-white/5 text-slate-300 hover:bg-white/10'
+                        ? 'bg-[#20242c] text-[#fffdfa] shadow-[0_12px_30px_rgba(32,36,44,0.14)]'
+                        : 'text-[#766f66] hover:bg-[#eee8de] hover:text-[#20242c]'
                     }`}
                   >
                     {item.label}
@@ -74,7 +70,7 @@ export default function FinanceShell() {
             </div>
           </aside>
 
-          <main className="min-h-0 rounded-[2rem] bg-[#0f172a] p-4 shadow-[0_20px_50px_rgba(15,23,42,0.15)] md:p-6">
+          <main className="min-h-0 rounded-[2rem] border border-[#ded6c9] bg-[#f6f1e8] p-4 shadow-[0_24px_70px_rgba(56,50,43,0.12)] md:p-6">
             <Suspense fallback={<RouteScreen label="Carregando area financeira..." />}>
               <Routes>
                 <Route path="/" element={<Navigate to="/crm/financeiro" replace />} />

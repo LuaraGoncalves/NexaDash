@@ -1,3 +1,5 @@
+import { apiRequest } from './apiClient';
+
 export type LeadStatus = 'novo' | 'negociacao' | 'indeciso' | 'aguardando' | 'concluido';
 
 export type LeadRecord = {
@@ -27,76 +29,39 @@ export type LeadMessageRecord = {
   sent_at: string;
 };
 
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api';
-const TOKEN_KEY = 'nexadash_token';
-
-function authHeaders(): HeadersInit {
-  const token = localStorage.getItem(TOKEN_KEY);
-
-  return token
-    ? {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      }
-    : {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      };
-}
-
-async function handleResponse<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const message = await response.text();
-    throw new Error(message || 'Erro ao comunicar com a API de leads');
-  }
-
-  return response.json() as Promise<T>;
-}
-
 export async function listLeads(): Promise<LeadRecord[]> {
-  const response = await fetch(`${API_BASE}/crm/leads`, {
-    headers: authHeaders(),
+  return apiRequest<LeadRecord[]>('/crm/leads', {
+    errorMessage: 'Erro ao comunicar com a API de leads',
   });
-
-  return handleResponse<LeadRecord[]>(response);
 }
 
 export async function createLead(payload: Required<Pick<LeadPayload, 'name'>> & LeadPayload): Promise<LeadRecord> {
-  const response = await fetch(`${API_BASE}/crm/leads`, {
+  return apiRequest<LeadRecord>('/crm/leads', {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de leads',
   });
-
-  return handleResponse<LeadRecord>(response);
 }
 
 export async function updateLead(id: number, payload: LeadPayload): Promise<LeadRecord> {
-  const response = await fetch(`${API_BASE}/crm/leads/${id}`, {
+  return apiRequest<LeadRecord>(`/crm/leads/${id}`, {
     method: 'PUT',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de leads',
   });
-
-  return handleResponse<LeadRecord>(response);
 }
 
 export async function deleteLead(id: number): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE}/crm/leads/${id}`, {
+  return apiRequest<{ message: string }>(`/crm/leads/${id}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    errorMessage: 'Erro ao comunicar com a API de leads',
   });
-
-  return handleResponse<{ message: string }>(response);
 }
 
 export async function listLeadMessages(id: number): Promise<LeadMessageRecord[]> {
-  const response = await fetch(`${API_BASE}/crm/leads/${id}/messages`, {
-    headers: authHeaders(),
+  return apiRequest<LeadMessageRecord[]>(`/crm/leads/${id}/messages`, {
+    errorMessage: 'Erro ao comunicar com a API de leads',
   });
-
-  return handleResponse<LeadMessageRecord[]>(response);
 }
 
 export async function createLeadMessage(
@@ -107,11 +72,9 @@ export async function createLeadMessage(
     message: string;
   },
 ): Promise<LeadMessageRecord> {
-  const response = await fetch(`${API_BASE}/crm/leads/${id}/messages`, {
+  return apiRequest<LeadMessageRecord>(`/crm/leads/${id}/messages`, {
     method: 'POST',
-    headers: authHeaders(),
     body: JSON.stringify(payload),
+    errorMessage: 'Erro ao comunicar com a API de leads',
   });
-
-  return handleResponse<LeadMessageRecord>(response);
 }

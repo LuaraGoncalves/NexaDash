@@ -23,7 +23,7 @@ class AuditLogController extends Controller
             )
             ->when(
                 ! empty($validated['usuario']),
-                fn ($query) => $query->where('usuario_nome', 'like', '%' . $validated['usuario'] . '%')
+                fn ($query) => $query->where('usuario_nome', 'like', '%'.$validated['usuario'].'%')
             )
             ->when(
                 ! empty($validated['data_inicio']),

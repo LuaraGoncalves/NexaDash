@@ -9,86 +9,20 @@ import {
   type AuditLogRecord,
   type ManagedUser,
   type PermissionKey,
-  type UserPermissions,
   type UserRole,
-  type UserStatus,
 } from '../services/usersApi';
 import ConfirmActionModal from '../components/ConfirmActionModal';
 import ContextHelp from '../components/ContextHelp';
 import { useAuth } from '../context/useAuth';
 import { useToast } from '../context/useToast';
-
-type RoleOption = {
-  value: UserRole;
-  label: string;
-  defaultSetor: string;
-};
-
-type UserFormState = {
-  name: string;
-  email: string;
-  password: string;
-  role: UserRole;
-  status: UserStatus;
-  setor: string;
-  permissions: UserPermissions;
-};
-
-const roleOptions: RoleOption[] = [
-  { value: 'admin', label: 'Administrador', defaultSetor: 'Geral' },
-  { value: 'manager', label: 'Gerente de Vendas', defaultSetor: 'Vendas' },
-  { value: 'employee', label: 'Atendente', defaultSetor: 'Vendas' },
-  { value: 'finance', label: 'Financeiro', defaultSetor: 'Financeiro' },
-];
-
-const permissionLabels: Record<PermissionKey, string> = {
-  ver_leads: 'Ver Leads',
-  editar_leads: 'Editar Leads',
-  excluir_leads: 'Excluir Leads',
-  ver_financeiro: 'Ver Financeiro',
-  criar_usuario: 'Criar Usuários',
-};
-
-const defaultPermissionsByRole: Record<UserRole, UserPermissions> = {
-  admin: {
-    ver_leads: true,
-    editar_leads: true,
-    excluir_leads: true,
-    ver_financeiro: true,
-    criar_usuario: true,
-  },
-  manager: {
-    ver_leads: true,
-    editar_leads: true,
-    excluir_leads: false,
-    ver_financeiro: false,
-    criar_usuario: false,
-  },
-  employee: {
-    ver_leads: true,
-    editar_leads: true,
-    excluir_leads: false,
-    ver_financeiro: false,
-    criar_usuario: false,
-  },
-  finance: {
-    ver_leads: false,
-    editar_leads: false,
-    excluir_leads: false,
-    ver_financeiro: true,
-    criar_usuario: false,
-  },
-};
-
-const emptyFormState = (): UserFormState => ({
-  name: '',
-  email: '',
-  password: '',
-  role: 'employee',
-  status: 'ativo',
-  setor: 'Vendas',
-  permissions: { ...defaultPermissionsByRole.employee },
-});
+import { actionBadgeClass, actionBadgeLabel } from './users/auditBadge';
+import {
+  defaultPermissionsByRole,
+  emptyFormState,
+  permissionLabels,
+  roleOptions,
+  type UserFormState,
+} from './users/userAccessConfig';
 
 const moduleLabels: Record<string, string> = {
   auth: 'Autenticação',
@@ -716,31 +650,3 @@ function Users() {
 }
 
 export default Users;
-
-function actionBadgeLabel(action: string) {
-  const normalized = action.toLowerCase();
-
-  if (normalized.includes('login') && normalized.includes('inv')) return 'Acesso negado';
-  if (normalized.includes('login')) return 'Login';
-  if (normalized.includes('criad')) return 'Criação';
-  if (normalized.includes('atualiz') || normalized.includes('editad')) return 'Edição';
-  if (normalized.includes('cancelad')) return 'Cancelamento';
-  if (normalized.includes('inativ')) return 'Inativação';
-  if (normalized.includes('exclu')) return 'Exclusão';
-
-  return 'Ação';
-}
-
-function actionBadgeClass(action: string) {
-  const normalized = action.toLowerCase();
-
-  if (normalized.includes('login') && normalized.includes('inv')) return 'bg-red-500/10 text-red-300 border-red-500/30';
-  if (normalized.includes('login')) return 'bg-sky-500/10 text-sky-300 border-sky-500/30';
-  if (normalized.includes('criad')) return 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30';
-  if (normalized.includes('atualiz') || normalized.includes('editad')) return 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30';
-  if (normalized.includes('cancelad')) return 'bg-amber-500/10 text-amber-300 border-amber-500/30';
-  if (normalized.includes('inativ')) return 'bg-orange-500/10 text-orange-300 border-orange-500/30';
-  if (normalized.includes('exclu')) return 'bg-red-500/10 text-red-300 border-red-500/30';
-
-  return 'bg-gray-500/10 text-gray-300 border-gray-500/30';
-}
