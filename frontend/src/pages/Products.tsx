@@ -24,115 +24,38 @@ import {
   updateSupplier,
   updateUnit,
   type InventoryMovementPayload,
-  type InventoryMovementRecord,
-  type InventoryMovementType,
   type ProductCategoryPayload,
-  type ProductCategoryRecord,
   type ProductPayload,
-  type ProductRecord,
   type ProductStatus,
   type SupplierPayload,
-  type SupplierRecord,
   type UnitPayload,
-  type UnitRecord,
 } from '../services/productsApi';
-
-type Categoria = ProductCategoryRecord;
-type Fornecedor = SupplierRecord;
-type Unidade = UnitRecord;
-type Produto = ProductRecord;
-type Movimentacao = InventoryMovementRecord;
-
-type PendingProductAction =
-  | { kind: 'product'; id: number; label: string }
-  | { kind: 'product-reactivate'; id: number; label: string }
-  | { kind: 'movement'; id: number; label: string }
-  | { kind: 'category'; id: number; label: string }
-  | { kind: 'supplier'; id: number; label: string }
-  | { kind: 'supplier-reactivate'; id: number; label: string }
-  | { kind: 'unit'; id: number; label: string };
-
-type ProductFormState = {
-  sku: string;
-  nome: string;
-  descricao: string;
-  preco_custo: string;
-  preco_venda: string;
-  quantidade: string;
-  estoque_minimo: string;
-  status: ProductStatus;
-  id_categoria: string;
-  id_fornecedor: string;
-  id_unidade: string;
-  foto_url: string;
-};
-
-type MovementFormState = {
-  id_produto: string;
-  tipo: InventoryMovementType;
-  quantidade: string;
-  data_hora: string;
-  motivo: string;
-  responsavel: string;
-};
-
-type CategoryFormState = {
-  nome: string;
-  descricao: string;
-};
-
-type SupplierFormState = {
-  nome: string;
-  cnpj_cpf: string;
-  contato: string;
-  status: ProductStatus;
-};
-
-type UnitFormState = {
-  sigla: string;
-  nome: string;
-};
-
-const emptyProductForm = (): ProductFormState => ({
-  sku: '',
-  nome: '',
-  descricao: '',
-  preco_custo: '',
-  preco_venda: '',
-  quantidade: '0',
-  estoque_minimo: '0',
-  status: 'ativo',
-  id_categoria: '',
-  id_fornecedor: '',
-  id_unidade: '',
-  foto_url: '',
-});
-
-const emptyMovementForm = (): MovementFormState => ({
-  id_produto: '',
-  tipo: 'entrada',
-  quantidade: '1',
-  data_hora: toDatetimeLocal(new Date().toISOString()),
-  motivo: '',
-  responsavel: '',
-});
-
-const emptyCategoryForm = (): CategoryFormState => ({
-  nome: '',
-  descricao: '',
-});
-
-const emptySupplierForm = (): SupplierFormState => ({
-  nome: '',
-  cnpj_cpf: '',
-  contato: '',
-  status: 'ativo',
-});
-
-const emptyUnitForm = (): UnitFormState => ({
-  sigla: '',
-  nome: '',
-});
+import { formatCurrency, formatDateTime, toDatetimeLocal } from '../utils/formatters';
+import FieldNumber from './products/FieldNumber';
+import {
+  emptyCategoryForm,
+  emptyMovementForm,
+  emptyProductForm,
+  emptySupplierForm,
+  emptyUnitForm,
+  getCategoriaNome,
+  getFornecedorNome,
+  getPendingActionButtonLabel,
+  getPendingActionDescription,
+  getPendingActionTitle,
+  getUnidadeSigla,
+  type Categoria,
+  type CategoryFormState,
+  type Fornecedor,
+  type Movimentacao,
+  type MovementFormState,
+  type PendingProductAction,
+  type Produto,
+  type ProductFormState,
+  type SupplierFormState,
+  type Unidade,
+  type UnitFormState,
+} from './products/productDomain';
 
 export default function Products() {
   const { showToast } = useToast();
@@ -1589,120 +1512,4 @@ export default function Products() {
       />
     </div>
   );
-}
-
-function FieldNumber({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-gray-400 mb-1">{label}</label>
-      <input
-        type="number"
-        step="0.01"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#ff8c00]"
-      />
-    </div>
-  );
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
-function getCategoriaNome(categorias: Categoria[], id: number) {
-  return categorias.find((categoria) => categoria.id === id)?.nome || 'Sem categoria';
-}
-
-function getFornecedorNome(fornecedores: Fornecedor[], id: number | null) {
-  return fornecedores.find((fornecedor) => fornecedor.id === id)?.nome || 'Sem fornecedor';
-}
-
-function getUnidadeSigla(unidades: Unidade[], id: number) {
-  return unidades.find((unidade) => unidade.id === id)?.sigla || 'UN';
-}
-
-function toDatetimeLocal(value: string) {
-  const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-  const localDate = new Date(date.getTime() - offset * 60000);
-  return localDate.toISOString().slice(0, 16);
-}
-
-function getPendingActionTitle(action: PendingProductAction | null): string {
-  if (!action) {
-    return '';
-  }
-
-  if (action.kind === 'product' || action.kind === 'supplier') {
-    return 'Confirmar inativacao?';
-  }
-
-  if (action.kind === 'product-reactivate' || action.kind === 'supplier-reactivate') {
-    return 'Confirmar reativacao?';
-  }
-
-  return 'Confirmar exclusao?';
-}
-
-function getPendingActionDescription(action: PendingProductAction | null): string {
-  if (!action) {
-    return '';
-  }
-
-  if (action.kind === 'product') {
-    return `O produto ${action.label} vai ficar inativo. Ele nao some do historico, so deixa de ficar disponivel normalmente.`;
-  }
-
-  if (action.kind === 'product-reactivate') {
-    return `O produto ${action.label} vai voltar a ficar ativo e disponivel no sistema.`;
-  }
-
-  if (action.kind === 'supplier') {
-    return `O fornecedor ${action.label} vai ficar inativo. O historico continua guardado.`;
-  }
-
-  if (action.kind === 'supplier-reactivate') {
-    return `O fornecedor ${action.label} vai voltar a ficar ativo no cadastro.`;
-  }
-
-  if (action.kind === 'movement') {
-    return `A movimentacao ${action.label} sera apagada de verdade e o estoque sera recalculado.`;
-  }
-
-  return `${action.label} sera excluido de verdade do cadastro.`;
-}
-
-function getPendingActionButtonLabel(action: PendingProductAction | null): string {
-  if (!action) {
-    return '';
-  }
-
-  if (action.kind === 'product' || action.kind === 'supplier') {
-    return 'Inativar agora';
-  }
-
-  if (action.kind === 'product-reactivate' || action.kind === 'supplier-reactivate') {
-    return 'Reativar agora';
-  }
-
-  return 'Excluir agora';
 }

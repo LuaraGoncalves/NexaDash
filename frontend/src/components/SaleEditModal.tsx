@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { SalePaymentMethod, SalePayload, SaleStatus } from '../services/salesApi';
+import { formatCurrency } from '../utils/formatters';
 
 export type SaleEditCustomer = {
   id: number;
@@ -381,11 +382,4 @@ export default function SaleEditModal({
       </div>
     </div>
   );
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
 }

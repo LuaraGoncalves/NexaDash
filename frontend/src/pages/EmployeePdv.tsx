@@ -3,6 +3,7 @@ import { useToast } from '../context/useToast';
 import { createCustomer, listCustomers, type CustomerRecord } from '../services/customersApi';
 import { listProducts, type ProductRecord } from '../services/productsApi';
 import { createSale, listSales, type SaleRecord } from '../services/salesApi';
+import { formatCurrency } from '../utils/formatters';
 
 type Cliente = {
   id: number;
@@ -39,13 +40,6 @@ type VendaRecente = {
 
 const formasPagamento: FormaPagamento[] = ['PIX', 'Cartão de Crédito', 'Cartão de Débito', 'Dinheiro'];
 const walkInCustomerLabel = 'Cliente avulso';
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-}
 
 export default function EmployeePdv() {
   const { showToast } = useToast();

@@ -12,95 +12,26 @@ import {
   updateFinancialCategory,
   updateFinancialTransaction,
   type FinancialCategoryPayload,
-  type FinancialCategoryRecord,
-  type FinancialCategoryType,
   type FinancialTransactionPayload,
-  type FinancialTransactionRecord,
-  type FinancialTransactionStatus,
-  type FinancialTransactionType,
 } from '../services/financeApi';
-
-type TipoTransacao = FinancialTransactionType;
-type StatusTransacao = FinancialTransactionStatus;
-type TipoCategoria = FinancialCategoryType;
-type FormaPagamento =
-  | 'PIX'
-  | 'Dinheiro'
-  | 'Cartão de Crédito'
-  | 'Cartão de Débito'
-  | 'Boleto'
-  | 'Transferência';
-
-type CategoriaFinanceira = FinancialCategoryRecord;
-type Transacao = FinancialTransactionRecord & {
-  forma_pagamento: FormaPagamento;
-  tipo: TipoTransacao;
-  status: StatusTransacao;
-  data_pagamento?: string;
-};
-
-type PendingFinanceAction =
-  | { kind: 'transaction'; id: number; label: string }
-  | { kind: 'category'; id: number; label: string };
-
-type TransactionFormState = {
-  tipo: TipoTransacao;
-  descricao: string;
-  valor: string;
-  data_vencimento: string;
-  data_pagamento: string;
-  id_categoria: string;
-  forma_pagamento: FormaPagamento;
-  status: Exclude<StatusTransacao, 'Cancelado'>;
-  protocolo_venda: string;
-  observacoes: string;
-};
-
-type CategoryFormState = {
-  nome: string;
-  tipo: TipoCategoria;
-  cor: string;
-};
-
-const paymentOptions: FormaPagamento[] = [
-  'PIX',
-  'Dinheiro',
-  'Cartão de Crédito',
-  'Cartão de Débito',
-  'Boleto',
-  'Transferência',
-];
-
-const colorOptions = [
-  { value: 'bg-green-500', label: 'Verde' },
-  { value: 'bg-red-500', label: 'Vermelho' },
-  { value: 'bg-yellow-500', label: 'Amarelo' },
-  { value: 'bg-blue-500', label: 'Azul' },
-  { value: 'bg-violet-500', label: 'Violeta' },
-  { value: 'bg-cyan-500', label: 'Ciano' },
-  { value: 'bg-pink-500', label: 'Rosa' },
-  { value: 'bg-orange-500', label: 'Laranja' },
-  { value: 'bg-gray-500', label: 'Cinza' },
-];
-
-const emptyTransactionForm = (tipo: TipoTransacao): TransactionFormState => ({
-  tipo,
-  descricao: '',
-  valor: '',
-  data_vencimento: todayDate(),
-  data_pagamento: '',
-  id_categoria: '',
-  forma_pagamento: 'PIX',
-  status: 'Pendente',
-  protocolo_venda: '',
-  observacoes: '',
-});
-
-const emptyCategoryForm = (): CategoryFormState => ({
-  nome: '',
-  tipo: 'receita',
-  cor: 'bg-green-500',
-});
+import { formatCurrency, todayDate } from '../utils/formatters';
+import {
+  colorOptions,
+  emptyCategoryForm,
+  emptyTransactionForm,
+  mapTransaction,
+  paymentOptions,
+  type CategoriaFinanceira,
+  type CategoryFormState,
+  type FormaPagamento,
+  type PendingFinanceAction,
+  type StatusTransacao,
+  type TipoCategoria,
+  type TipoTransacao,
+  type Transacao,
+  type TransactionFormState,
+} from './financeiro/financeDomain';
+import { DetailRow, FieldInput, StatCard } from './financeiro/FinanceiroUi';
 
 export default function Financeiro() {
   const { showToast } = useToast();
@@ -949,86 +880,4 @@ export default function Financeiro() {
       />
     </div>
   );
-}
-
-function StatCard({
-  title,
-  value,
-  helper,
-  tone,
-}: {
-  title: string;
-  value: string;
-  helper: string;
-  tone: 'green' | 'red';
-}) {
-  return (
-    <div className="bg-[#23272d] rounded-2xl p-6 border border-gray-800 shadow-xl relative overflow-hidden">
-      <h3 className="text-gray-400 text-sm font-semibold uppercase tracking-widest mb-1 relative z-10">{title}</h3>
-      <p className="text-3xl font-black text-white relative z-10">{value}</p>
-      <p className={`text-xs mt-2 relative z-10 ${tone === 'green' ? 'text-yellow-500' : 'text-yellow-500'}`}>{helper}</p>
-    </div>
-  );
-}
-
-function FieldInput({
-  label,
-  value,
-  onChange,
-  type = 'text',
-  step,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  step?: string;
-}) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-gray-400 mb-1">{label}</label>
-      <input
-        type={type}
-        step={step}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full bg-[#1a1e23] border border-gray-700 text-white rounded-lg px-4 py-2 outline-none focus:border-[#00e6e6]"
-      />
-    </div>
-  );
-}
-
-function DetailRow({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div className="flex justify-between border-b border-gray-800 pb-2">
-      <span className="text-gray-500">{label}</span>
-      <span className={highlight ? 'text-white font-bold' : 'text-white'}>{value}</span>
-    </div>
-  );
-}
-
-function todayDate() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function formatCurrency(val: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-}
-
-function mapTransaction(transaction: FinancialTransactionRecord): Transacao {
-  return {
-    ...transaction,
-    tipo: transaction.tipo as TipoTransacao,
-    status: transaction.status as StatusTransacao,
-    forma_pagamento: transaction.forma_pagamento as FormaPagamento,
-    data_pagamento: transaction.data_pagamento ?? undefined,
-  };
 }

@@ -10,6 +10,7 @@ import {
   type LeadMessageRecord,
   type LeadRecord,
 } from '../services/leadsApi';
+import { formatDateTime } from '../utils/formatters';
 import type { Lead } from './LeadsKanban';
 
 const quickReplies = [
@@ -442,11 +443,4 @@ function mapLeadFromApi(lead: LeadRecord): Lead {
     nome: lead.name,
     status: lead.status,
   };
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  }).format(new Date(value));
 }

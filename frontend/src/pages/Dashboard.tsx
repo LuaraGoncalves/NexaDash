@@ -1,14 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '../context/useToast';
 import { getDashboardData, type DashboardData } from '../services/dashboardApi';
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+import { formatWholeCurrency } from '../utils/formatters';
 
 function Dashboard() {
   const { showToast } = useToast();
@@ -91,9 +84,9 @@ function Dashboard() {
         </div>
 
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Receita paga" value={formatCurrency(paidRevenue)} helper="Entradas confirmadas" tone="green" />
-          <MetricCard label="Despesa paga" value={formatCurrency(paidExpenses)} helper="Saídas confirmadas" tone="red" />
-          <MetricCard label="Saldo atual" value={formatCurrency(balance)} helper="Resultado financeiro" tone={balance >= 0 ? 'green' : 'amber'} />
+          <MetricCard label="Receita paga" value={formatWholeCurrency(paidRevenue)} helper="Entradas confirmadas" tone="green" />
+          <MetricCard label="Despesa paga" value={formatWholeCurrency(paidExpenses)} helper="Saídas confirmadas" tone="red" />
+          <MetricCard label="Saldo atual" value={formatWholeCurrency(balance)} helper="Resultado financeiro" tone={balance >= 0 ? 'green' : 'amber'} />
           <MetricCard label="Usuários ativos" value={String(dashboard?.users.active ?? 0)} helper="Contas disponíveis" tone="neutral" />
         </div>
       </section>
@@ -119,7 +112,7 @@ function Dashboard() {
                       <div
                         className="w-full rounded-xl bg-[#20242c] transition-[height]"
                         style={{ height: `${height}%` }}
-                        title={`${item.label}: ${formatCurrency(item.value)}`}
+                        title={`${item.label}: ${formatWholeCurrency(item.value)}`}
                       />
                     </div>
                     <span className="text-xs font-medium text-[#766f66]">{item.label}</span>
